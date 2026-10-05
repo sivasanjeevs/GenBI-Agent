@@ -6,7 +6,7 @@ import SqlAccordion from './components/SqlAccordion'
 import { MessageSquare, X } from 'lucide-react'
 
 export default function App() {
-  const [query, setQuery] = useState('')
+
   const [inputVal, setInputVal] = useState('')
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<any>(null)
@@ -21,14 +21,14 @@ export default function App() {
     setTurnCount(0)
     setResult(null)
     setError(null)
-    setQuery('')
+
     setInputVal('')
     setIsTopBar(false)
   }
 
   const handleSearch = async (q: string) => {
     if (!q.trim()) return
-    setQuery(q)
+
     setLoading(true)
     setError(null)
     setIsTopBar(true)
