@@ -6,6 +6,7 @@ import SqlAccordion from './components/SqlAccordion'
 
 export default function App() {
   const [query, setQuery] = useState('')
+  const [inputVal, setInputVal] = useState('')
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
@@ -36,69 +37,81 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen transition-all duration-700 ease-in-out relative overflow-hidden">
-      {/* Glow Orbs behind everything */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-dg-primary/20 blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-dg-accent/20 blur-[120px] pointer-events-none" />
+    <div className="min-h-screen relative overflow-hidden">
+      {/* Ambient glow orbs */}
+      <div className="fixed top-[-15%] left-[-10%] w-[45%] h-[45%] rounded-full bg-dg-primary/15 blur-[140px] pointer-events-none" />
+      <div className="fixed bottom-[-15%] right-[-10%] w-[45%] h-[45%] rounded-full bg-dg-accent/15 blur-[140px] pointer-events-none" />
 
-      <div className={`mx-auto max-w-5xl px-4 relative z-10 ${isTopBar ? 'pt-8' : 'pt-[30vh]'}`}>
-        
-        {/* Header State Transition */}
-        <div className={`flex flex-col transition-all duration-700 ease-in-out ${isTopBar ? 'mb-10 items-center' : 'items-center text-center mb-12'}`}>
-          <div className={`transition-all duration-700 ${isTopBar ? 'flex items-center gap-4 mb-6 opacity-90 scale-90' : 'mb-10'}`}>
-            <h1 className={`font-extrabold tracking-tight text-white ${isTopBar ? 'text-3xl' : 'text-6xl md:text-7xl mb-4'}`}>
-              Rosetta <span className="text-gradient">AI</span>
+      <div className={`mx-auto max-w-5xl px-6 relative z-10 transition-all duration-700 ease-in-out ${isTopBar ? 'pt-10' : 'pt-[28vh]'}`}>
+
+        {/* Header */}
+        <div className={`flex flex-col transition-all duration-700 ease-in-out ${isTopBar ? 'mb-8 items-center' : 'items-center text-center mb-10'}`}>
+          <div className={`transition-all duration-700 ${isTopBar ? 'mb-5 opacity-90' : 'mb-8'}`}>
+            <h1 className={`font-bold tracking-tight text-white transition-all duration-700 ${isTopBar ? 'text-2xl' : 'text-5xl md:text-6xl mb-3'}`}>
+              Rosetta <span className="text-gradient"> GenBI Agent</span>
             </h1>
             {!isTopBar && (
-              <p className="text-gray-400 text-lg md:text-xl font-medium max-w-2xl mx-auto">
-                Unlock insights from your Oracle Database at the speed of thought.
+              <p className="text-gray-500 text-base md:text-lg max-w-xl mx-auto leading-relaxed">
+                Unlock insights from your Oracle Database in plain English.
               </p>
             )}
           </div>
-          
+
+          {/* Search box — full width */}
           <div className="w-full max-w-3xl">
-            <SearchBox onSearch={handleSearch} loading={loading} />
+            <SearchBox
+              onSearch={handleSearch}
+              loading={loading}
+              value={inputVal}
+              onChange={setInputVal}
+            />
           </div>
         </div>
 
-        {/* Results Area */}
+        {/* Results */}
         {isTopBar && (
-          <div className="space-y-8 pb-24 transition-opacity duration-700">
+          <div className="space-y-5 pb-20">
+            {/* Loading skeleton */}
             {loading && (
-              <div className="glass glass-glow rounded-3xl p-8 animate-pulse border border-white/10">
-                <div className="flex space-x-6 items-center">
-                  <div className="w-12 h-12 rounded-full bg-white/10 flex-shrink-0"></div>
-                  <div className="flex-1 space-y-4 py-1">
-                    <div className="h-4 bg-white/10 rounded w-3/4"></div>
-                    <div className="space-y-2">
-                      <div className="h-3 bg-white/5 rounded w-full"></div>
-                      <div className="h-3 bg-white/5 rounded w-5/6"></div>
-                    </div>
+              <div className="glass rounded-2xl p-6 animate-pulse border border-white/8">
+                <div className="flex gap-5 items-start">
+                  <div className="w-10 h-10 rounded-full bg-white/8 flex-shrink-0 mt-1" />
+                  <div className="flex-1 space-y-3">
+                    <div className="h-3.5 bg-white/8 rounded w-3/4" />
+                    <div className="h-3 bg-white/5 rounded w-full" />
+                    <div className="h-3 bg-white/5 rounded w-5/6" />
                   </div>
                 </div>
               </div>
             )}
-            
+
+            {/* Error */}
             {error && (
-              <div className="glass rounded-3xl p-6 text-red-400 border border-red-500/30 shadow-[0_0_30px_rgba(239,68,68,0.15)] flex items-center gap-4">
-                <svg className="w-6 h-6 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="glass rounded-2xl p-5 text-red-400 border border-red-500/25 shadow-[0_0_24px_rgba(239,68,68,0.1)] flex items-center gap-3 text-sm">
+                <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <span>Failed to load answer: {error}</span>
               </div>
             )}
 
+            {/* Answer result */}
             {!loading && !error && result && (
-              <div className="space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700 fill-mode-both">
-                <div className="glass glass-glow rounded-3xl overflow-hidden border border-white/10">
+              <div className="space-y-5 animate-in fade-in slide-in-from-bottom-6 duration-500 fill-mode-both">
+
+                {/* Answer card — full width */}
+                <div className="glass glass-glow rounded-2xl overflow-hidden border border-white/10">
                   <AnswerCard data={result} />
                 </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="glass rounded-2xl border border-white/10 overflow-hidden hover:border-white/20 transition-colors">
+
+                {/* Evidence + Trace — 3:2 split */}
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                  {/* Evidence & Query — wider (3/5) */}
+                  <div className="md:col-span-3 glass rounded-2xl border border-white/8 overflow-hidden hover:border-white/15 transition-colors duration-300">
                     <SqlAccordion sql={result.sql} explanation={result.explanation} />
                   </div>
-                  <div className="glass rounded-2xl border border-white/10 overflow-hidden hover:border-white/20 transition-colors">
+                  {/* Agent Trace — narrower (2/5) */}
+                  <div className="md:col-span-2 glass rounded-2xl border border-white/8 overflow-hidden hover:border-white/15 transition-colors duration-300">
                     <TraceViewer trace={result.trace} />
                   </div>
                 </div>

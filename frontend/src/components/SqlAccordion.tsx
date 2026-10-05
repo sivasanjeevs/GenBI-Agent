@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronDown, Database, Code } from 'lucide-react';
+import { ChevronDown, Database, Code2 } from 'lucide-react';
 
 interface SqlAccordionProps {
   sql: string;
@@ -7,40 +7,48 @@ interface SqlAccordionProps {
 }
 
 export default function SqlAccordion({ sql, explanation }: SqlAccordionProps) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(true);
 
   return (
-    <div className="h-full flex flex-col group">
+    <div className="h-full flex flex-col">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full px-6 py-5 flex items-center justify-between bg-dg-panel/30 hover:bg-dg-panel/70 transition-all duration-300"
+        className="w-full px-5 py-4 flex items-center justify-between hover:bg-white/3 transition-all duration-200"
       >
-        <div className="flex items-center text-gray-200 font-semibold tracking-wide text-sm uppercase">
-          <Database className="w-4 h-4 mr-3 text-dg-primary" />
-          Evidence & Query
+        <div className="flex items-center gap-2.5 text-gray-300 font-semibold tracking-wider text-xs uppercase">
+          <Database className="w-4 h-4 text-dg-primary flex-shrink-0" />
+          Evidence &amp; Query
         </div>
-        <ChevronDown 
-          className={`w-5 h-5 text-gray-400 transition-transform duration-500 ease-[cubic-bezier(0.87,0,0.13,1)] ${isOpen ? 'rotate-180' : ''}`} 
+        <ChevronDown
+          className={`w-4 h-4 text-gray-500 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}
         />
       </button>
-      
-      <div className={`transition-all duration-500 ease-[cubic-bezier(0.87,0,0.13,1)] overflow-hidden ${isOpen ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0'}`}>
-        <div className="p-6 bg-dg-bg/50 border-t border-white/5 space-y-6">
+
+      <div
+        className={`overflow-hidden transition-all duration-400 ease-in-out ${
+          isOpen ? 'opacity-100' : 'max-h-0 opacity-0'
+        }`}
+      >
+        <div className="px-5 pb-5 pt-1 space-y-5 border-t border-white/5">
+          {/* Reasoning */}
           <div>
-            <h4 className="text-xs font-bold text-dg-primary uppercase tracking-[0.2em] mb-3 flex items-center">
-              <Code className="w-4 h-4 mr-2" />
+            <h4 className="flex items-center gap-2 text-[10px] font-bold text-dg-primary uppercase tracking-[0.18em] mb-2.5">
+              <Code2 className="w-3.5 h-3.5" />
               Reasoning
             </h4>
-            <p className="text-sm text-gray-300 leading-relaxed font-medium">
-              {explanation || "No explanation provided."}
+            <p className="text-sm text-gray-300 leading-relaxed">
+              {explanation || 'No explanation provided.'}
             </p>
           </div>
-          
+
+          {/* SQL */}
           <div>
-            <h4 className="text-xs font-bold text-dg-accent uppercase tracking-[0.2em] mb-3">Generated SQL</h4>
-            <div className="bg-black/60 rounded-xl p-5 overflow-x-auto shadow-inner border border-white/5 relative group-hover:border-white/10 transition-colors">
-              <pre className="text-sm font-mono text-blue-200 leading-relaxed">
-                <code>{sql || "-- No SQL generated"}</code>
+            <h4 className="text-[10px] font-bold text-dg-accent uppercase tracking-[0.18em] mb-2.5">
+              Generated SQL
+            </h4>
+            <div className="bg-black/70 rounded-xl p-4 overflow-x-auto border border-white/5 hover:border-white/10 transition-colors">
+              <pre className="text-sm font-mono text-sky-300 leading-relaxed whitespace-pre-wrap break-words">
+                <code>{sql || '-- No SQL generated'}</code>
               </pre>
             </div>
           </div>

@@ -1,51 +1,71 @@
-import { useState, useRef, useEffect } from 'react';
-import { Search, Loader2 } from 'lucide-react';
+import { useRef } from 'react';
+import { Search, Loader2, Sparkles } from 'lucide-react';
 
 interface SearchBoxProps {
   onSearch: (q: string) => void;
   loading: boolean;
+  value: string;
+  onChange: (val: string) => void;
 }
 
-export default function SearchBox({ onSearch, loading }: SearchBoxProps) {
-  const [val, setVal] = useState('');
-  const inputRef = useRef<HTMLInputElement>(null);
+export default function SearchBox({ onSearch, loading, value, onChange }: SearchBoxProps) {
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSearch(val);
+    if (!value.trim()) return;
+    onSearch(value);
     inputRef.current?.blur();
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (!value.trim()) return;
+      onSearch(value);
+    }
+  };
+
   return (
-    <form onSubmit={handleSubmit} className="relative group w-full max-w-4xl mx-auto">
-      <div className="absolute inset-y-0 left-0 pl-6 flex items-center pointer-events-none z-20">
-        {loading ? (
-          <Loader2 className="h-6 w-6 text-dg-primary animate-spin" />
-        ) : (
-          <Search className="h-6 w-6 text-gray-400 group-focus-within:text-white transition-colors duration-300" />
-        )}
+    <form onSubmit={handleSubmit} className="relative group w-full">
+      {/* Outer glow on focus */}
+      <div className="absolute -inset-px bg-gradient-to-r from-dg-primary to-dg-accent rounded-2xl opacity-0 group-focus-within:opacity-30 blur-lg transition-opacity duration-500 pointer-events-none" />
+
+      <div className="relative bg-dg-panel/50 backdrop-blur-xl border border-white/10 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] group-focus-within:border-white/25 transition-all duration-300">
+        {/* Top row: icon + textarea */}
+        <div className="flex items-start gap-3 px-5 pt-4 pb-2">
+          <div className="mt-1 flex-shrink-0">
+            {loading ? (
+              <Loader2 className="h-5 w-5 text-dg-primary animate-spin" />
+            ) : (
+              <Search className="h-5 w-5 text-gray-500 group-focus-within:text-gray-300 transition-colors duration-300" />
+            )}
+          </div>
+          <textarea
+            ref={inputRef}
+            rows={2}
+            value={value}
+            onChange={e => onChange(e.target.value)}
+            onKeyDown={handleKeyDown}
+            disabled={loading}
+            className="flex-1 resize-none bg-transparent text-base text-white placeholder-gray-500 focus:outline-none leading-relaxed disabled:opacity-50 min-h-[3rem]"
+            placeholder="Ask anything about your data... (Enter to send)"
+          />
+        </div>
+
+        {/* Bottom row: hint + button */}
+        <div className="flex items-center justify-between px-5 pb-3">
+          <span className="text-xs text-gray-600 hidden sm:inline">Shift+Enter for new line</span>
+          <button
+            type="submit"
+            disabled={loading || !value.trim()}
+            className="ml-auto flex items-center gap-2 px-5 py-2 bg-white text-black hover:bg-gray-100 rounded-xl font-semibold text-sm transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(255,255,255,0.15)] hover:shadow-[0_0_28px_rgba(255,255,255,0.3)]"
+          >
+            <Sparkles className="w-4 h-4" />
+            Generate
+          </button>
+        </div>
       </div>
-      
-      {/* Outer glow effect on focus */}
-      <div className="absolute inset-0 bg-gradient-to-r from-dg-primary to-dg-accent rounded-full opacity-0 group-focus-within:opacity-20 blur-xl transition-opacity duration-500" />
-      
-      <input
-        ref={inputRef}
-        type="text"
-        value={val}
-        onChange={e => setVal(e.target.value)}
-        disabled={loading}
-        className="relative block w-full pl-16 pr-32 py-5 sm:py-6 text-lg sm:text-xl bg-dg-panel/40 backdrop-blur-xl border border-white/10 rounded-full text-white placeholder-gray-400 focus:border-white/30 focus:bg-dg-panel/60 shadow-[0_8px_32px_rgba(0,0,0,0.5)] transition-all duration-300 disabled:opacity-50 outline-none"
-        placeholder="Ask anything about your data..."
-      />
-      
-      <button
-        type="submit"
-        disabled={loading || !val.trim()}
-        className="absolute inset-y-2 right-2 sm:right-3 px-6 sm:px-8 bg-white text-black hover:bg-gray-100 rounded-full font-bold text-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(255,255,255,0.2)] hover:shadow-[0_0_30px_rgba(255,255,255,0.4)] z-20 flex items-center gap-2"
-      >
-        <span>Generate</span>
-      </button>
     </form>
   );
 }

@@ -1,36 +1,37 @@
 {
-  "generated_at": "2026-10-05T17:41:29Z",
-  "version": "b2f101cf4c0f12a4",
+  "generated_at": "2026-10-05T18:43:05Z",
+  "version": "d4569136fc39ee29",
   "tables": [
     {
       "schema": "GENAIVF",
       "table_name": "V_MNP_ACTUAL",
       "full_name": "GENAIVF.V_MNP_ACTUAL",
       "table_type": "dimension",
-      "business_entity": "Number Portability Event",
+      "business_entity": "MNP Porting Event",
       "row_count": 5788,
       "is_scd": false,
       "verified_high_concepts": [
-        "Successful Port Events",
-        "Postpaid Consumer Portings",
-        "Vodafone as Recipient Portings"
+        "Successful Vodafone Port-In",
+        "Postpaid Consumer Porting",
+        "Turkcell Donor Porting"
       ],
-      "version": "b2f101cf4c0f12a4"
+      "version": "d4569136fc39ee29"
     },
     {
       "schema": "GENAIVF",
       "table_name": "V_MNP_REQUEST",
       "full_name": "GENAIVF.V_MNP_REQUEST",
       "table_type": "dimension",
-      "business_entity": "Number Portability Request",
+      "business_entity": "MNP Request",
       "row_count": 8300,
       "is_scd": false,
       "verified_high_concepts": [
         "Successful Port Requests",
         "Port In Requests",
-        "Postpaid CBU Port Requests"
+        "Cancelled Port Requests",
+        "Postpaid Consumer Port Requests"
       ],
-      "version": "b2f101cf4c0f12a4"
+      "version": "d4569136fc39ee29"
     },
     {
       "schema": "VID",
@@ -41,11 +42,11 @@
       "row_count": 11389,
       "is_scd": false,
       "verified_high_concepts": [
-        "Mass Market Segment",
-        "CRM Sourced Segments",
+        "Mass Market Customers",
+        "CRM Segment Sources",
         "Current Active Segments"
       ],
-      "version": "b2f101cf4c0f12a4"
+      "version": "d4569136fc39ee29"
     },
     {
       "schema": "VID",
@@ -57,9 +58,10 @@
       "is_scd": false,
       "verified_high_concepts": [
         "Individual Customers",
-        "Corporate Customers"
+        "Corporate Customers",
+        "Active Customer Records"
       ],
-      "version": "b2f101cf4c0f12a4"
+      "version": "d4569136fc39ee29"
     },
     {
       "schema": "VID",
@@ -71,10 +73,11 @@
       "is_scd": true,
       "verified_high_concepts": [
         "Active Device Offerings",
-        "Postpaid Handset Offerings",
-        "36-Month Commitment Leasings"
+        "Current SCD Records",
+        "Handset Phone Offers",
+        "Credit Card Payment Eligible Offers"
       ],
-      "version": "b2f101cf4c0f12a4"
+      "version": "d4569136fc39ee29"
     },
     {
       "schema": "VID",
@@ -85,26 +88,25 @@
       "row_count": 50,
       "is_scd": false,
       "verified_high_concepts": [
-        "4G Capable Devices",
         "Smartphones",
-        "Mobile Broadband Devices",
-        "Current Device Types"
+        "4G Capable Devices",
+        "Mobile Broadband Devices"
       ],
-      "version": "b2f101cf4c0f12a4"
+      "version": "d4569136fc39ee29"
     },
     {
       "schema": "VID",
       "table_name": "D_ICCI_IMSI_SUBS_HIST",
       "full_name": "VID.D_ICCI_IMSI_SUBS_HIST",
       "table_type": "dimension",
-      "business_entity": "Subscriber SIM Mapping History",
+      "business_entity": "Subscriber SIM History",
       "row_count": 11762,
       "is_scd": false,
       "verified_high_concepts": [
         "eSIM Subscriptions",
         "Physical SIM Subscriptions"
       ],
-      "version": "b2f101cf4c0f12a4"
+      "version": "d4569136fc39ee29"
     },
     {
       "schema": "VID",
@@ -119,7 +121,7 @@
         "Closed Shops",
         "Suspended Shops"
       ],
-      "version": "b2f101cf4c0f12a4"
+      "version": "d4569136fc39ee29"
     },
     {
       "schema": "VID",
@@ -132,9 +134,9 @@
       "verified_high_concepts": [
         "5G SIM Cards",
         "4G SIM Cards",
-        "Currently Active SIM Records"
+        "Active SIM Cards"
       ],
-      "version": "b2f101cf4c0f12a4"
+      "version": "d4569136fc39ee29"
     },
     {
       "schema": "VID",
@@ -146,10 +148,9 @@
       "is_scd": false,
       "verified_high_concepts": [
         "Active Status",
-        "Base Status Indicator",
-        "Suspended Status"
+        "Base Indicator Status"
       ],
-      "version": "b2f101cf4c0f12a4"
+      "version": "d4569136fc39ee29"
     },
     {
       "schema": "VID",
@@ -161,27 +162,26 @@
       "is_scd": false,
       "verified_high_concepts": [
         "Esnaf Subscribers",
-        "G\u0130B Verified Subscriptions",
-        "Corporate Segment Subscriptions",
-        "Mobile Postpay Subscriptions"
+        "GIB Verified Subscriptions",
+        "Corporate Subscriptions"
       ],
-      "version": "b2f101cf4c0f12a4"
+      "version": "d4569136fc39ee29"
     },
     {
       "schema": "VID",
       "table_name": "D_SUBS_DEVICE_OFFER_HIST",
       "full_name": "VID.D_SUBS_DEVICE_OFFER_HIST",
       "table_type": "fact",
-      "business_entity": "Subscriber Device Offer",
+      "business_entity": "Subscription Offer Contract",
       "row_count": 5570,
       "is_scd": false,
       "verified_high_concepts": [
-        "Active Device Offers",
+        "Active Contracts",
         "Cancelled Contracts",
-        "Buyback Transactions",
-        "Leakage Flagged Offers"
+        "Leakage Subscriptions",
+        "Buyback Transactions"
       ],
-      "version": "b2f101cf4c0f12a4"
+      "version": "d4569136fc39ee29"
     },
     {
       "schema": "VID",
@@ -192,11 +192,11 @@
       "row_count": 13875,
       "is_scd": false,
       "verified_high_concepts": [
-        "Mobile Postpay Offers",
-        "Offers With Discounts",
-        "Zero Fast Discount Rate"
+        "Postpaid Subscription Tariffs",
+        "Prepaid Subscription Tariffs",
+        "Discounted Activations"
       ],
-      "version": "b2f101cf4c0f12a4"
+      "version": "d4569136fc39ee29"
     },
     {
       "schema": "VID",
@@ -209,10 +209,10 @@
       "verified_high_concepts": [
         "Active Tariffs",
         "Postpaid Tariffs",
-        "Corporate Eligible Tariffs",
-        "Digital Tariffs"
+        "Digital Tariffs",
+        "Consumer (CBU) Tariffs"
       ],
-      "version": "b2f101cf4c0f12a4"
+      "version": "d4569136fc39ee29"
     },
     {
       "schema": "VID",
@@ -227,22 +227,22 @@
         "CVM Eligible Customers",
         "Consumer Segment Customers"
       ],
-      "version": "b2f101cf4c0f12a4"
+      "version": "d4569136fc39ee29"
     },
     {
       "schema": "VID",
       "table_name": "F_LIFECYCLE_KPI",
       "full_name": "VID.F_LIFECYCLE_KPI",
       "table_type": "dimension",
-      "business_entity": "Subscription Lifecycle KPI",
+      "business_entity": "Subscription Lifecycle Event",
       "row_count": 7192,
       "is_scd": true,
       "verified_high_concepts": [
         "Gross Add Events",
-        "Mobile Postpay Subscriptions",
-        "Active Target Status"
+        "Active Target Status",
+        "Mobile Postpay Subscriptions"
       ],
-      "version": "b2f101cf4c0f12a4"
+      "version": "d4569136fc39ee29"
     },
     {
       "schema": "VID",
@@ -258,23 +258,22 @@
         "Voice Usage",
         "Data Usage"
       ],
-      "version": "b2f101cf4c0f12a4"
+      "version": "d4569136fc39ee29"
     },
     {
       "schema": "VID",
       "table_name": "F_SUBSCRIPTION_D",
       "full_name": "VID.F_SUBSCRIPTION_D",
       "table_type": "dimension",
-      "business_entity": "Subscription",
+      "business_entity": "Subscriber",
       "row_count": 63000,
       "is_scd": true,
       "verified_high_concepts": [
-        "Active Subscriptions",
-        "Mobile Postpay Subscriptions",
-        "5G Opted-In Subscriptions",
-        "Consumer Market Segment"
+        "Active 5G Subscribers",
+        "Postpaid Consumers",
+        "Volte Enabled Subscribers"
       ],
-      "version": "b2f101cf4c0f12a4"
+      "version": "d4569136fc39ee29"
     },
     {
       "schema": "VID",
@@ -289,7 +288,7 @@
         "Possible 5G Subscriptions",
         "5G Device Settings Enabled"
       ],
-      "version": "b2f101cf4c0f12a4"
+      "version": "d4569136fc39ee29"
     },
     {
       "schema": "VID",
@@ -301,10 +300,10 @@
       "is_scd": true,
       "verified_high_concepts": [
         "Voice and Data Subscriptions",
-        "Postpaid Corporate Business Unit Subscribers",
-        "Subscribers with Smart Discount Contracts"
+        "Active Smart Contracts",
+        "Corporate Business Unit Subscriptions"
       ],
-      "version": "b2f101cf4c0f12a4"
+      "version": "d4569136fc39ee29"
     },
     {
       "schema": "VID",
@@ -315,12 +314,12 @@
       "row_count": 242,
       "is_scd": false,
       "verified_high_concepts": [
-        "Data Enabled Offerings",
         "Recurring Offerings",
         "Device Offerings",
-        "Postpaid Eligible Offerings"
+        "Postpaid Eligible Offerings",
+        "Data Enabled Offerings"
       ],
-      "version": "b2f101cf4c0f12a4"
+      "version": "d4569136fc39ee29"
     }
   ]
 }

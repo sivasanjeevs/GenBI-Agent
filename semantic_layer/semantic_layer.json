@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-05T17:41:29Z",
+  "generated_at": "2026-10-05T18:43:05Z",
   "schemas": [
     "VID",
     "GENAIVF"
@@ -125,48 +125,48 @@
         }
       ],
       "semantics": {
-        "table_description": "This table stores actual mobile number portability (MNP) transactions that have completed successfully. It tracks the donor service provider, the applied/recipient service provider, subscriber customer combination types, and the porting due date.",
-        "business_entity": "Number Portability Event",
-        "grain": "One row per successful mobile number porting event.",
+        "table_description": "This table captures actual Mobile Number Portability (MNP) transactions and porting events within the telecom network. It records details such as the donor service provider, the applied service provider, subscriber customer combination types, and the scheduled due dates for successful porting activities.",
+        "business_entity": "MNP Porting Event",
+        "grain": "One row per mobile number porting actual event",
         "scd_note": null,
         "concepts": [
           {
-            "term": "Successful Port Events",
-            "filter_sql": "num_port_actual_grp_status_desc = 'Success'",
-            "rationale": "The status group description is consistently recorded as Success for all records in the table."
+            "term": "Successful Vodafone Port-In",
+            "filter_sql": "applied_sp_name = 'Vodafone' AND num_port_actual_grp_status_desc = 'Success'",
+            "rationale": "Applied service provider is Vodafone and the port group status description indicates success."
           },
           {
-            "term": "Postpaid Consumer Portings",
+            "term": "Postpaid Consumer Porting",
             "filter_sql": "subs_cust_comb_type = 'POS CBU'",
-            "rationale": "Filtering by POS CBU captures postpaid consumer segment porting transactions which represent the majority of records."
+            "rationale": "Subscriber customer combination type is POS CBU representing postpaid consumer segment."
           },
           {
-            "term": "Vodafone as Recipient Portings",
-            "filter_sql": "applied_sp_name = 'Vodafone'",
-            "rationale": "Applied service provider name indicates Vodafone as the destination operator for incoming ported numbers."
+            "term": "Turkcell Donor Porting",
+            "filter_sql": "donor_sp_name = 'Turkcell'",
+            "rationale": "Donor service provider from which the number is being ported away is Turkcell."
           }
         ],
         "columns": {},
         "counting_warnings": [
-          "All rows represent successful porting events, so COUNT(*) accurately reflects total successful port transactions."
+          "This table records porting events; use COUNT(*) to count total porting transactions or distinct identifiers if available."
         ],
         "suggested_joins": []
       },
       "verified_concepts": [
         {
-          "term": "Successful Port Events",
-          "filter_sql": "applied_sp_name = 'Vodafone'",
-          "rationale": "Filtering by applied_sp_name = 'Vodafone' isolates port events where Vodafone is the receiving operator.",
+          "term": "Successful Vodafone Port-In",
+          "filter_sql": "applied_sp_name = 'Vodafone' AND num_port_actual_grp_status_desc = 'Success'",
+          "rationale": "Applied service provider is Vodafone and the port group status description indicates success.",
           "confidence": "high",
           "verified": true,
           "count": 3162,
-          "verification_sql": "SELECT COUNT(*) AS cnt FROM GENAIVF.V_MNP_ACTUAL WHERE applied_sp_name = 'Vodafone'",
-          "repair_attempts": 1
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM GENAIVF.V_MNP_ACTUAL WHERE applied_sp_name = 'Vodafone' AND num_port_actual_grp_status_desc = 'Success'",
+          "repair_attempts": 0
         },
         {
-          "term": "Postpaid Consumer Portings",
+          "term": "Postpaid Consumer Porting",
           "filter_sql": "subs_cust_comb_type = 'POS CBU'",
-          "rationale": "Filtering by POS CBU captures postpaid consumer segment porting transactions which represent the majority of records.",
+          "rationale": "Subscriber customer combination type is POS CBU representing postpaid consumer segment.",
           "confidence": "high",
           "verified": true,
           "count": 3687,
@@ -174,13 +174,13 @@
           "repair_attempts": 0
         },
         {
-          "term": "Vodafone as Recipient Portings",
-          "filter_sql": "applied_sp_name = 'Vodafone'",
-          "rationale": "Applied service provider name indicates Vodafone as the destination operator for incoming ported numbers.",
+          "term": "Turkcell Donor Porting",
+          "filter_sql": "donor_sp_name = 'Turkcell'",
+          "rationale": "Donor service provider from which the number is being ported away is Turkcell.",
           "confidence": "high",
           "verified": true,
-          "count": 3162,
-          "verification_sql": "SELECT COUNT(*) AS cnt FROM GENAIVF.V_MNP_ACTUAL WHERE applied_sp_name = 'Vodafone'",
+          "count": 1908,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM GENAIVF.V_MNP_ACTUAL WHERE donor_sp_name = 'Turkcell'",
           "repair_attempts": 0
         }
       ]
@@ -397,30 +397,35 @@
         }
       ],
       "semantics": {
-        "table_description": "This table stores mobile number portability (MNP) requests, tracking the lifecycle of numbers moving between different service providers. It records the request types, status descriptions, donor and applied operators, and customer segment classifications.",
-        "business_entity": "Number Portability Request",
-        "grain": "One row per number port request transaction.",
+        "table_description": "The GENAIVF.V_MNP_REQUEST view stores mobile number portability (MNP) request details for tracking subscriber port-ins and port-outs across different telecom operators. It includes request submission dates, donor and applied service providers, customer types, and various statuses and group statuses.",
+        "business_entity": "MNP Request",
+        "grain": "One row per mobile number portability (MNP) request transaction.",
         "scd_note": null,
         "concepts": [
           {
             "term": "Successful Port Requests",
             "filter_sql": "num_port_request_grp_status_desc = 'Success'",
-            "rationale": "The group status description indicates successfully completed port requests."
+            "rationale": "The group status description 'Success' identifies successfully completed porting requests in the system."
           },
           {
             "term": "Port In Requests",
             "filter_sql": "num_port_request_type_desc = 'Port In'",
-            "rationale": "The request type description specifies numbers porting into the operator network."
+            "rationale": "The request type description 'Port In' isolates numbers being ported into the operator network."
           },
           {
-            "term": "Postpaid CBU Port Requests",
+            "term": "Cancelled Port Requests",
+            "filter_sql": "num_port_request_grp_status_desc = 'Cancelled'",
+            "rationale": "The group status description 'Cancelled' represents requests that were aborted or terminated prior to completion."
+          },
+          {
+            "term": "Postpaid Consumer Port Requests",
             "filter_sql": "subs_cust_comb_type = 'POS CBU'",
-            "rationale": "The subscriber customer combination type represents consumer postpaid accounts."
+            "rationale": "The combination type 'POS CBU' designates postpaid consumer subscriber port requests."
           }
         ],
         "columns": {},
         "counting_warnings": [
-          "Ensure counting uses distinct port requests if evaluating unique transaction entities."
+          "This table represents individual MNP requests; use COUNT(*) to count total requests, but note that a single subscriber may have multiple port requests over time."
         ],
         "suggested_joins": []
       },
@@ -428,7 +433,7 @@
         {
           "term": "Successful Port Requests",
           "filter_sql": "num_port_request_grp_status_desc = 'Success'",
-          "rationale": "The group status description indicates successfully completed port requests.",
+          "rationale": "The group status description 'Success' identifies successfully completed porting requests in the system.",
           "confidence": "high",
           "verified": true,
           "count": 5788,
@@ -438,7 +443,7 @@
         {
           "term": "Port In Requests",
           "filter_sql": "num_port_request_type_desc = 'Port In'",
-          "rationale": "The request type description specifies numbers porting into the operator network.",
+          "rationale": "The request type description 'Port In' isolates numbers being ported into the operator network.",
           "confidence": "high",
           "verified": true,
           "count": 4526,
@@ -446,9 +451,19 @@
           "repair_attempts": 0
         },
         {
-          "term": "Postpaid CBU Port Requests",
+          "term": "Cancelled Port Requests",
+          "filter_sql": "num_port_request_grp_status_desc = 'Cancelled'",
+          "rationale": "The group status description 'Cancelled' represents requests that were aborted or terminated prior to completion.",
+          "confidence": "high",
+          "verified": true,
+          "count": 678,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM GENAIVF.V_MNP_REQUEST WHERE num_port_request_grp_status_desc = 'Cancelled'",
+          "repair_attempts": 0
+        },
+        {
+          "term": "Postpaid Consumer Port Requests",
           "filter_sql": "subs_cust_comb_type = 'POS CBU'",
-          "rationale": "The subscriber customer combination type represents consumer postpaid accounts.",
+          "rationale": "The combination type 'POS CBU' designates postpaid consumer subscriber port requests.",
           "confidence": "high",
           "verified": true,
           "count": 5270,
@@ -581,38 +596,38 @@
         }
       ],
       "semantics": {
-        "table_description": "This table stores historical customer segment assignments for unified customers in the telecom domain, tracking changes in market segments over time along with their source and effective periods. It contains multiple historical segments per customer, enabling time-variant customer segmentation analysis.",
+        "table_description": "This table stores historical customer segmentation records for telecommunication subscribers. It tracks how customer segment assignments change over time along with their effective and expiry dates and the source of the assignment.",
         "business_entity": "Customer Segment History",
-        "grain": "One row per customer segment history record, identified by unified customer ID and segment start date.",
-        "scd_note": "Despite the table name containing '_HIST' and having effective start and end date columns, the metadata indicates SCD Type 2 is False, likely managed manually or through custom history loading processes.",
+        "grain": "One row per customer segment history period per unified customer ID.",
+        "scd_note": "Acts as an SCD Type 2 history table though officially flagged as Type 0, using segment_sdt and segment_edt to track periods.",
         "concepts": [
           {
-            "term": "Mass Market Segment",
+            "term": "Mass Market Customers",
             "filter_sql": "segment = 'MASS'",
-            "rationale": "Filters customer segments belonging to the MASS market category, which represents the largest group in the table."
+            "rationale": "Filters customer segments categorized specifically as mass market."
           },
           {
-            "term": "CRM Sourced Segments",
+            "term": "CRM Segment Sources",
             "filter_sql": "segment_source = 'CRM'",
-            "rationale": "Selects segment records that originated directly from the CRM system source."
+            "rationale": "Filters segment records that originated directly from the CRM system."
           },
           {
             "term": "Current Active Segments",
             "filter_sql": "segment_edt = TO_DATE('4712-12-31 23:59:59', 'YYYY-MM-DD HH24:MI:SS')",
-            "rationale": "Uses the standard Oracle far-future date to identify currently active segment records."
+            "rationale": "Identifies currently active segments using the standard Oracle distant future expiry date."
           }
         ],
         "columns": {},
         "counting_warnings": [
-          "Since this table contains multiple historical segments per customer, using COUNT(*) will count historical records rather than unique customers; use COUNT(DISTINCT unified_customer_id) for unique customer counts."
+          "Since this table contains historical records per customer, use COUNT(DISTINCT unified_customer_id) when counting unique customers rather than COUNT(*)."
         ],
         "suggested_joins": []
       },
       "verified_concepts": [
         {
-          "term": "Mass Market Segment",
+          "term": "Mass Market Customers",
           "filter_sql": "segment = 'MASS'",
-          "rationale": "Filters customer segments belonging to the MASS market category, which represents the largest group in the table.",
+          "rationale": "Filters customer segments categorized specifically as mass market.",
           "confidence": "high",
           "verified": true,
           "count": 5615,
@@ -620,9 +635,9 @@
           "repair_attempts": 0
         },
         {
-          "term": "CRM Sourced Segments",
+          "term": "CRM Segment Sources",
           "filter_sql": "segment_source = 'CRM'",
-          "rationale": "Selects segment records that originated directly from the CRM system source.",
+          "rationale": "Filters segment records that originated directly from the CRM system.",
           "confidence": "high",
           "verified": true,
           "count": 2413,
@@ -632,7 +647,7 @@
         {
           "term": "Current Active Segments",
           "filter_sql": "segment_edt = TO_DATE('4712-12-31 23:59:59', 'YYYY-MM-DD HH24:MI:SS')",
-          "rationale": "Uses the standard Oracle far-future date to identify currently active segment records.",
+          "rationale": "Identifies currently active segments using the standard Oracle distant future expiry date.",
           "confidence": "high",
           "verified": true,
           "count": 6000,
@@ -726,25 +741,30 @@
         }
       ],
       "semantics": {
-        "table_description": "This dimension table stores customer demographic and lifecycle details within the telecom database, including customer type and profile creation/expiration timelines. It tracks customer records across different customer identifiers and classifications.",
+        "table_description": "The VID.D_CUSTOMER table stores customer profile details including their customer type, creation start date, and end date. It tracks customer records across time or versions, categorizing them into Individual and Corporate segments.",
         "business_entity": "Customer",
-        "grain": "Each row represents a customer record defined by cust_id, unified_customer_id, and cust_type_cd.",
-        "scd_note": null,
+        "grain": "cust_id and cust_type_cd",
+        "scd_note": "Although SCD flags are not explicitly defined, the presence of start and end date columns (cust_sdt, cust_edt) indicates history tracking.",
         "concepts": [
           {
             "term": "Individual Customers",
             "filter_sql": "cust_type_cd = 'Individual'",
-            "rationale": "The cust_type_cd column identifies individual residential customers with the value 'Individual'."
+            "rationale": "cust_type_cd equals 'Individual' filters for personal consumer accounts."
           },
           {
             "term": "Corporate Customers",
             "filter_sql": "cust_type_cd = 'Corporate'",
-            "rationale": "The cust_type_cd column identifies corporate business customers with the value 'Corporate'."
+            "rationale": "cust_type_cd equals 'Corporate' filters for business accounts."
+          },
+          {
+            "term": "Active Customer Records",
+            "filter_sql": "cust_edt >= TO_DATE('4712-12-31', 'YYYY-MM-DD')",
+            "rationale": "An end date of 4712-12-31 typically signifies the currently active record in Oracle standard practices."
           }
         ],
         "columns": {},
         "counting_warnings": [
-          "Use COUNT(DISTINCT cust_id) or COUNT(DISTINCT unified_customer_id) to accurately count unique customers, as rows may represent historical or multi-type records."
+          "Use COUNT(DISTINCT cust_id) or COUNT(DISTINCT unified_customer_id) since multiple records may exist per customer over time."
         ],
         "suggested_joins": []
       },
@@ -752,7 +772,7 @@
         {
           "term": "Individual Customers",
           "filter_sql": "cust_type_cd = 'Individual'",
-          "rationale": "The cust_type_cd column identifies individual residential customers with the value 'Individual'.",
+          "rationale": "cust_type_cd equals 'Individual' filters for personal consumer accounts.",
           "confidence": "high",
           "verified": true,
           "count": 6676,
@@ -762,11 +782,21 @@
         {
           "term": "Corporate Customers",
           "filter_sql": "cust_type_cd = 'Corporate'",
-          "rationale": "The cust_type_cd column identifies corporate business customers with the value 'Corporate'.",
+          "rationale": "cust_type_cd equals 'Corporate' filters for business accounts.",
           "confidence": "high",
           "verified": true,
           "count": 1090,
           "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_CUSTOMER WHERE cust_type_cd = 'Corporate'",
+          "repair_attempts": 0
+        },
+        {
+          "term": "Active Customer Records",
+          "filter_sql": "cust_edt >= TO_DATE('4712-12-31', 'YYYY-MM-DD')",
+          "rationale": "An end date of 4712-12-31 typically signifies the currently active record in Oracle standard practices.",
+          "confidence": "high",
+          "verified": true,
+          "count": 5461,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_CUSTOMER WHERE cust_edt >= TO_DATE('4712-12-31', 'YYYY-MM-DD')",
           "repair_attempts": 0
         }
       ]
@@ -2795,63 +2825,78 @@
         }
       ],
       "semantics": {
-        "table_description": "This table stores device offering and campaign details for telecommunication products like handsets, accessories, and modems. It includes pricing, installment amounts, commitment durations, and eligibility criteria tracked over time using Slowly Changing Dimension (SCD Type 2) logic.",
+        "table_description": "This dimension table tracks device offering configurations, pricing details, and campaign structures provided through Brightstar integration. It acts as an SCD Type 2 record capturing changes to device offers over time.",
         "business_entity": "Device Offering",
-        "grain": "One row per offer version identified by offer_id, offer_num, and partnum across SCD effective timeframes.",
-        "scd_note": "SCD Type 2 table using brightstar_start_dt and brightstar_end_dt for effective tracking.",
+        "grain": "Each row represents a unique version of a device offering, identified by offer_id and brightstar_start_dt.",
+        "scd_note": "Slowly Changing Dimension Type 2 tracked using brightstar_start_dt and brightstar_end_dt.",
         "concepts": [
           {
             "term": "Active Device Offerings",
-            "filter_sql": "status_cd = 'Active' AND brightstar_end_dt = TO_DATE('4712-12-31 23:59:59', 'YYYY-MM-DD HH24:MI:SS')",
-            "rationale": "STATUS_CD = 'Active' and the max end date represent currently active device offerings."
+            "filter_sql": "status_cd = 'Active'",
+            "rationale": "status_cd equals 'Active' represents currently active device offers in the portfolio."
           },
           {
-            "term": "Postpaid Handset Offerings",
-            "filter_sql": "prepos_eligibility = 'POSTPAID' AND product_type_cd = 'HANDSET'",
-            "rationale": "PREPOS_ELIGIBILITY equals 'POSTPAID' and PRODUCT_TYPE_CD equals 'HANDSET' isolates handset offers for postpaid subscribers."
+            "term": "Current SCD Records",
+            "filter_sql": "brightstar_end_dt = TO_DATE('4712-12-31 23:59:59', 'YYYY-MM-DD HH24:MI:SS')",
+            "rationale": "brightstar_end_dt set to the distant future date 4712-12-31 indicates the current active record in the SCD Type 2 timeline."
           },
           {
-            "term": "36-Month Commitment Leasings",
-            "filter_sql": "commitment_dur = 36 AND camp_structure_cd = 'LEASING'",
-            "rationale": "COMMITMENT_DUR = 36 and CAMP_STRUCTURE_CD = 'LEASING' filter for long-term device leasing options."
+            "term": "Handset Phone Offers",
+            "filter_sql": "product_type_cd = 'HANDSET' AND product_sub_type_cd = 'PHONE'",
+            "rationale": "product_type_cd is 'HANDSET' and product_sub_type_cd is 'PHONE' isolates smartphone and mobile phone device offerings."
+          },
+          {
+            "term": "Credit Card Payment Eligible Offers",
+            "filter_sql": "cc_pay_ind = 'Y'",
+            "rationale": "cc_pay_ind equals 'Y' specifies offerings that support credit card payment methods."
           }
         ],
         "columns": {},
         "counting_warnings": [
-          "Use COUNT(DISTINCT offer_id) or COUNT(DISTINCT partnum) to avoid duplicate counts across SCD history versions.",
-          "Filter by brightstar_end_dt = TO_DATE('4712-12-31 23:59:59', 'YYYY-MM-DD HH24:MI:SS') when querying current active records to prevent historical duplication."
+          "Use COUNT(DISTINCT offer_id) or COUNT(DISTINCT offer_num) to avoid duplicates when querying across SCD Type 2 historical records.",
+          "Always include a filter for current records (brightstar_end_dt = TO_DATE('4712-12-31 23:59:59', 'YYYY-MM-DD HH24:MI:SS')) when analyzing point-in-time active offerings."
         ],
         "suggested_joins": []
       },
       "verified_concepts": [
         {
           "term": "Active Device Offerings",
-          "filter_sql": "status_cd = 'Active' AND brightstar_end_dt = TO_DATE('4712-12-31 23:59:59', 'YYYY-MM-DD HH24:MI:SS')",
-          "rationale": "STATUS_CD = 'Active' and the max end date represent currently active device offerings.",
+          "filter_sql": "status_cd = 'Active'",
+          "rationale": "status_cd equals 'Active' represents currently active device offers in the portfolio.",
           "confidence": "high",
           "verified": true,
           "count": 131,
-          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_DEVICE_OFFERING WHERE status_cd = 'Active' AND brightstar_end_dt = TO_DATE('4712-12-31 23:59:59', 'YYYY-MM-DD HH24:MI:SS')",
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_DEVICE_OFFERING WHERE status_cd = 'Active'",
           "repair_attempts": 0
         },
         {
-          "term": "Postpaid Handset Offerings",
-          "filter_sql": "prepos_eligibility = 'POSTPAID' AND product_type_cd = 'HANDSET'",
-          "rationale": "PREPOS_ELIGIBILITY equals 'POSTPAID' and PRODUCT_TYPE_CD equals 'HANDSET' isolates handset offers for postpaid subscribers.",
+          "term": "Current SCD Records",
+          "filter_sql": "brightstar_end_dt = TO_DATE('4712-12-31 23:59:59', 'YYYY-MM-DD HH24:MI:SS')",
+          "rationale": "brightstar_end_dt set to the distant future date 4712-12-31 indicates the current active record in the SCD Type 2 timeline.",
           "confidence": "high",
           "verified": true,
-          "count": 140,
-          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_DEVICE_OFFERING WHERE prepos_eligibility = 'POSTPAID' AND product_type_cd = 'HANDSET'",
+          "count": 131,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_DEVICE_OFFERING WHERE brightstar_end_dt = TO_DATE('4712-12-31 23:59:59', 'YYYY-MM-DD HH24:MI:SS')",
           "repair_attempts": 0
         },
         {
-          "term": "36-Month Commitment Leasings",
-          "filter_sql": "commitment_dur = 36 AND camp_structure_cd = 'LEASING'",
-          "rationale": "COMMITMENT_DUR = 36 and CAMP_STRUCTURE_CD = 'LEASING' filter for long-term device leasing options.",
+          "term": "Handset Phone Offers",
+          "filter_sql": "product_type_cd = 'HANDSET' AND product_sub_type_cd = 'PHONE'",
+          "rationale": "product_type_cd is 'HANDSET' and product_sub_type_cd is 'PHONE' isolates smartphone and mobile phone device offerings.",
           "confidence": "high",
           "verified": true,
-          "count": 14,
-          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_DEVICE_OFFERING WHERE commitment_dur = 36 AND camp_structure_cd = 'LEASING'",
+          "count": 123,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_DEVICE_OFFERING WHERE product_type_cd = 'HANDSET' AND product_sub_type_cd = 'PHONE'",
+          "repair_attempts": 0
+        },
+        {
+          "term": "Credit Card Payment Eligible Offers",
+          "filter_sql": "cc_pay_ind = 'Y'",
+          "rationale": "cc_pay_ind equals 'Y' specifies offerings that support credit card payment methods.",
+          "confidence": "high",
+          "verified": true,
+          "count": 97,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_DEVICE_OFFERING WHERE cc_pay_ind = 'Y'",
           "repair_attempts": 0
         }
       ]
@@ -3222,53 +3267,38 @@
         }
       ],
       "semantics": {
-        "table_description": "This table stores dimensional attributes for various telecommunication device types and models, including their equipment category, technology generation, and feature indicators such as 4G and smartphone capabilities. It tracks historical versions of device specifications over time using start and end date timestamps.",
+        "table_description": "This table stores dimensional attributes and classifications for various telecommunication device types and models. It tracks technical capabilities such as 4G support, smartphone indicators, mobile broadband capabilities, and web browsing features.",
         "business_entity": "Device Type",
-        "grain": "Each row represents a specific version of a device type identified by device_type_id and its effective date range.",
-        "scd_note": "SCD Type 2 maintained using device_type_sdt and device_type_edt.",
+        "grain": "Each row represents a specific device type and version identified by device_type_id, with historical tracking managed via effective and expiry dates.",
+        "scd_note": "Contains effective date (device_type_sdt) and expiry date (device_type_edt) columns for history tracking.",
         "concepts": [
-          {
-            "term": "4G Capable Devices",
-            "filter_sql": "device_type_4g_ind = 'Y'",
-            "rationale": "device_type_4g_ind equals 'Y' indicates devices that support 4G technology."
-          },
           {
             "term": "Smartphones",
             "filter_sql": "device_type_smart_phone_ind = 'Y'",
-            "rationale": "device_type_smart_phone_ind equals 'Y' isolates devices classified as smartphones."
+            "rationale": "device_type_smart_phone_ind equal to 'Y' denotes devices classified as smartphones."
+          },
+          {
+            "term": "4G Capable Devices",
+            "filter_sql": "device_type_4g_ind = 'Y'",
+            "rationale": "device_type_4g_ind equal to 'Y' filters for devices supporting 4G network technology."
           },
           {
             "term": "Mobile Broadband Devices",
             "filter_sql": "device_type_mob_broadband_ind = 'Y'",
-            "rationale": "device_type_mob_broadband_ind equals 'Y' filters for devices enabled with mobile broadband connectivity."
-          },
-          {
-            "term": "Current Device Types",
-            "filter_sql": "device_type_edt = TO_DATE('4712-12-31 23:59:59', 'YYYY-MM-DD HH24:MI:SS')",
-            "rationale": "An end date of 4712-12-31 represents the currently active record for the device type in the SCD dimension."
+            "rationale": "device_type_mob_broadband_ind equal to 'Y' identifies devices with mobile broadband capability."
           }
         ],
         "columns": {},
         "counting_warnings": [
-          "Use COUNT(DISTINCT device_type_id) when counting unique device types, as device_type_id can appear multiple times across different historical SCD versions."
+          "Use COUNT(DISTINCT device_type_id) when counting unique device types as historical records may exist."
         ],
         "suggested_joins": []
       },
       "verified_concepts": [
         {
-          "term": "4G Capable Devices",
-          "filter_sql": "device_type_4g_ind = 'Y'",
-          "rationale": "device_type_4g_ind equals 'Y' indicates devices that support 4G technology.",
-          "confidence": "high",
-          "verified": true,
-          "count": 46,
-          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_DEVICE_TYPE WHERE device_type_4g_ind = 'Y'",
-          "repair_attempts": 0
-        },
-        {
           "term": "Smartphones",
           "filter_sql": "device_type_smart_phone_ind = 'Y'",
-          "rationale": "device_type_smart_phone_ind equals 'Y' isolates devices classified as smartphones.",
+          "rationale": "device_type_smart_phone_ind equal to 'Y' denotes devices classified as smartphones.",
           "confidence": "high",
           "verified": true,
           "count": 27,
@@ -3276,23 +3306,23 @@
           "repair_attempts": 0
         },
         {
+          "term": "4G Capable Devices",
+          "filter_sql": "device_type_4g_ind = 'Y'",
+          "rationale": "device_type_4g_ind equal to 'Y' filters for devices supporting 4G network technology.",
+          "confidence": "high",
+          "verified": true,
+          "count": 46,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_DEVICE_TYPE WHERE device_type_4g_ind = 'Y'",
+          "repair_attempts": 0
+        },
+        {
           "term": "Mobile Broadband Devices",
           "filter_sql": "device_type_mob_broadband_ind = 'Y'",
-          "rationale": "device_type_mob_broadband_ind equals 'Y' filters for devices enabled with mobile broadband connectivity.",
+          "rationale": "device_type_mob_broadband_ind equal to 'Y' identifies devices with mobile broadband capability.",
           "confidence": "high",
           "verified": true,
           "count": 19,
           "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_DEVICE_TYPE WHERE device_type_mob_broadband_ind = 'Y'",
-          "repair_attempts": 0
-        },
-        {
-          "term": "Current Device Types",
-          "filter_sql": "device_type_edt = TO_DATE('4712-12-31 23:59:59', 'YYYY-MM-DD HH24:MI:SS')",
-          "rationale": "An end date of 4712-12-31 represents the currently active record for the device type in the SCD dimension.",
-          "confidence": "high",
-          "verified": true,
-          "count": 39,
-          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_DEVICE_TYPE WHERE device_type_edt = TO_DATE('4712-12-31 23:59:59', 'YYYY-MM-DD HH24:MI:SS')",
           "repair_attempts": 0
         }
       ]
@@ -3382,26 +3412,25 @@
         }
       ],
       "semantics": {
-        "table_description": "This table tracks the historical associations between SIM cards (ICCIs) and subscriptions within the telecom network, including effective and expiry timestamps for each mapping. It also captures attributes like whether the subscriber is using an eSIM.",
-        "business_entity": "Subscriber SIM Mapping History",
-        "grain": "One row per ICCI (SIM card) and subscription history record, uniquely identified by ICCI.",
-        "scd_note": "Contains start and end dates (icci_imsi_subs_sdt and icci_imsi_subs_edt) representing historical validity periods.",
+        "table_description": "This table stores historical mapping and subscription assignment details linking SIM cards (ICCI) to specific telecom subscribers. It includes start and end timestamps tracking the validity periods of these associations and indicates whether the SIM is of eSIM type.",
+        "business_entity": "Subscriber SIM History",
+        "grain": "One row per ICCI and subscription association history period, uniquely identified by ICCI.",
+        "scd_note": "Contains start and end dates (icci_imsi_subs_sdt and icci_imsi_subs_edt) functioning similarly to an SCD Type 2 structure, with active records extending to year 4712.",
         "concepts": [
           {
             "term": "eSIM Subscriptions",
             "filter_sql": "esim_ind = 'Y'",
-            "rationale": "The esim_ind column equals 'Y' for subscriptions utilizing embedded SIM technology."
+            "rationale": "The esim_ind column indicates whether a subscription uses an eSIM when set to 'Y'."
           },
           {
             "term": "Physical SIM Subscriptions",
             "filter_sql": "esim_ind = 'N'",
-            "rationale": "The esim_ind column equals 'N' for traditional physical SIM card subscriptions."
+            "rationale": "The esim_ind column denotes standard physical SIM cards when set to 'N'."
           }
         ],
         "columns": {},
         "counting_warnings": [
-          "Use COUNT(DISTINCT icci) when counting unique physical SIMs or ICCIs, as subscription_id can have multiple history records.",
-          "Use COUNT(DISTINCT subscription_id) to count unique subscriptions since subscription_id has fewer distinct values than rows."
+          "Use COUNT(DISTINCT subscription_id) to count unique subscribers since subscription_id has multiple association history records."
         ],
         "suggested_joins": []
       },
@@ -3409,7 +3438,7 @@
         {
           "term": "eSIM Subscriptions",
           "filter_sql": "esim_ind = 'Y'",
-          "rationale": "The esim_ind column equals 'Y' for subscriptions utilizing embedded SIM technology.",
+          "rationale": "The esim_ind column indicates whether a subscription uses an eSIM when set to 'Y'.",
           "confidence": "high",
           "verified": true,
           "count": 1208,
@@ -3419,7 +3448,7 @@
         {
           "term": "Physical SIM Subscriptions",
           "filter_sql": "esim_ind = 'N'",
-          "rationale": "The esim_ind column equals 'N' for traditional physical SIM card subscriptions.",
+          "rationale": "The esim_ind column denotes standard physical SIM cards when set to 'N'.",
           "confidence": "high",
           "verified": true,
           "count": 10554,
@@ -3871,48 +3900,48 @@
         }
       ],
       "semantics": {
-        "table_description": "This table represents retail shops and dealer networks, capturing their operational status, geographic location details, management history, and lifecycle status such as activation or cancellation reasons. It functions as a Slowly Changing Dimension supporting historical tracking of shop attributes over time.",
+        "table_description": "This table represents retail shops and dealer locations within the telecom network, capturing details such as their location, status, type, and associated sales manager. It functions as a dimension or slowly changing record of physical storefronts.",
         "business_entity": "Shop",
-        "grain": "shop_id, shop_sdt",
-        "scd_note": "Contains effective and expiry dates (shop_sdt and shop_edt), indicating that historical changes to shop records are tracked.",
+        "grain": "One row per shop history version, uniquely identified by shop_id and effective date range (shop_sdt to shop_edt).",
+        "scd_note": "Contains start and end dates (shop_sdt, shop_edt) indicating historical tracking, though marked as non-SCD type 2 in metadata.",
         "concepts": [
           {
             "term": "Active Shops",
-            "filter_sql": "shop_status = 'Active' AND shop_edt = TO_DATE('4712-12-31 23:59:59', 'YYYY-MM-DD HH24:MI:SS')",
-            "rationale": "shop_status = 'Active' indicates currently operating shops, combined with the maximum expiry date for the latest record version."
+            "filter_sql": "shop_status = 'Active'",
+            "rationale": "shop_status = 'Active' represents currently operational retail shops and dealer locations."
           },
           {
             "term": "Closed Shops",
             "filter_sql": "shop_status = 'Closed'",
-            "rationale": "shop_status = 'Closed' specifically isolates retail locations that have permanently ceased operations."
+            "rationale": "shop_status = 'Closed' identifies shops that have permanently ceased operations."
           },
           {
             "term": "Suspended Shops",
             "filter_sql": "shop_status = 'Suspended'",
-            "rationale": "shop_status = 'Suspended' captures shops that are temporarily inactive or under administrative suspension."
+            "rationale": "shop_status = 'Suspended' isolates temporary non-operational dealer locations."
           }
         ],
         "columns": {},
         "counting_warnings": [
-          "This table can contain multiple history records per shop due to SCD tracking; use shop_edt = TO_DATE('4712-12-31 23:59:59', 'YYYY-MM-DD HH24:MI:SS') or COUNT(DISTINCT shop_id) to count unique active shops accurately."
+          "Use COUNT(DISTINCT shop_id) when counting unique shops across multiple historical versions, as shop_id has fewer distinct counts than total rows."
         ],
         "suggested_joins": []
       },
       "verified_concepts": [
         {
           "term": "Active Shops",
-          "filter_sql": "shop_status = 'Active' AND shop_edt = TO_DATE('4712-12-31 23:59:59', 'YYYY-MM-DD HH24:MI:SS')",
-          "rationale": "shop_status = 'Active' indicates currently operating shops, combined with the maximum expiry date for the latest record version.",
+          "filter_sql": "shop_status = 'Active'",
+          "rationale": "shop_status = 'Active' represents currently operational retail shops and dealer locations.",
           "confidence": "high",
           "verified": true,
-          "count": 214,
-          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_SHOP WHERE shop_status = 'Active' AND shop_edt = TO_DATE('4712-12-31 23:59:59', 'YYYY-MM-DD HH24:MI:SS')",
+          "count": 274,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_SHOP WHERE shop_status = 'Active'",
           "repair_attempts": 0
         },
         {
           "term": "Closed Shops",
           "filter_sql": "shop_status = 'Closed'",
-          "rationale": "shop_status = 'Closed' specifically isolates retail locations that have permanently ceased operations.",
+          "rationale": "shop_status = 'Closed' identifies shops that have permanently ceased operations.",
           "confidence": "high",
           "verified": true,
           "count": 28,
@@ -3922,7 +3951,7 @@
         {
           "term": "Suspended Shops",
           "filter_sql": "shop_status = 'Suspended'",
-          "rationale": "shop_status = 'Suspended' captures shops that are temporarily inactive or under administrative suspension.",
+          "rationale": "shop_status = 'Suspended' isolates temporary non-operational dealer locations.",
           "confidence": "high",
           "verified": true,
           "count": 20,
@@ -4006,30 +4035,30 @@
         }
       ],
       "semantics": {
-        "table_description": "The VID.D_SIMCARD table contains dimension data regarding SIM card inventory and characteristics, including ICCI identifiers, effective and expiry timestamps, and technology types. It tracks the lifecycle and technology generation associated with specific SIM cards in the telecom network.",
+        "table_description": "This dimension table tracks SIM card history and technology types within the telecommunications network. It records the lifecycle dates for each ICCI identifier, including effective start and end timestamps.",
         "business_entity": "SIM Card",
-        "grain": "Each row represents a SIM card instance or historical version identified by ICCI and its effective period timestamps.",
-        "scd_note": "Although SCD flags are not explicitly defined, the presence of effective and expiry date columns (icci_sdt and icci_edt) indicates history tracking for SIM cards.",
+        "grain": "Each row represents a specific history period of a SIM card identified by ICCI and its effective start and end dates.",
+        "scd_note": "While not automatically flagged as SCD Type 2, the presence of icci_sdt and icci_edt columns indicates slowly changing dimensional behavior.",
         "concepts": [
           {
             "term": "5G SIM Cards",
             "filter_sql": "simcard_type_tech = '5G'",
-            "rationale": "SIM cards utilizing 5G network technology can be isolated by filtering for simcard_type_tech equal to 5G."
+            "rationale": "SIM cards utilizing 5G network technology are identified where simcard_type_tech equals 5G."
           },
           {
             "term": "4G SIM Cards",
             "filter_sql": "simcard_type_tech = '4G'",
-            "rationale": "SIM cards utilizing 4G network technology can be isolated by filtering for simcard_type_tech equal to 4G."
+            "rationale": "SIM cards utilizing 4G network technology are identified where simcard_type_tech equals 4G."
           },
           {
-            "term": "Currently Active SIM Records",
+            "term": "Active SIM Cards",
             "filter_sql": "icci_edt >= TO_DATE('4712-12-31', 'YYYY-MM-DD')",
-            "rationale": "Oracle infinity dates like 4712-12-31 in the expiry column signify currently active or open-ended SIM card records."
+            "rationale": "SIM cards that are currently active in the network typically have their end date set to the maximum Oracle date of 4712-12-31."
           }
         ],
         "columns": {},
         "counting_warnings": [
-          "Use COUNT(DISTINCT icci) when counting unique physical SIM cards because the table contains historical or multiple entries per ICCI."
+          "ICCI values are repeated across rows due to historical versioning, so use COUNT(DISTINCT icci) when counting unique SIM cards rather than COUNT(*)."
         ],
         "suggested_joins": []
       },
@@ -4037,7 +4066,7 @@
         {
           "term": "5G SIM Cards",
           "filter_sql": "simcard_type_tech = '5G'",
-          "rationale": "SIM cards utilizing 5G network technology can be isolated by filtering for simcard_type_tech equal to 5G.",
+          "rationale": "SIM cards utilizing 5G network technology are identified where simcard_type_tech equals 5G.",
           "confidence": "high",
           "verified": true,
           "count": 3551,
@@ -4047,7 +4076,7 @@
         {
           "term": "4G SIM Cards",
           "filter_sql": "simcard_type_tech = '4G'",
-          "rationale": "SIM cards utilizing 4G network technology can be isolated by filtering for simcard_type_tech equal to 4G.",
+          "rationale": "SIM cards utilizing 4G network technology are identified where simcard_type_tech equals 4G.",
           "confidence": "high",
           "verified": true,
           "count": 10478,
@@ -4055,9 +4084,9 @@
           "repair_attempts": 0
         },
         {
-          "term": "Currently Active SIM Records",
+          "term": "Active SIM Cards",
           "filter_sql": "icci_edt >= TO_DATE('4712-12-31', 'YYYY-MM-DD')",
-          "rationale": "Oracle infinity dates like 4712-12-31 in the expiry column signify currently active or open-ended SIM card records.",
+          "rationale": "SIM cards that are currently active in the network typically have their end date set to the maximum Oracle date of 4712-12-31.",
           "confidence": "high",
           "verified": true,
           "count": 8908,
@@ -4202,7 +4231,7 @@
         }
       ],
       "semantics": {
-        "table_description": "This dimension table stores various status definitions and descriptions used across the telecom domain. It contains indicators identifying whether a specific status represents a foundational base status.",
+        "table_description": "VID.D_STATUS is a dimension table storing telecom status master data, including identifiers and descriptive states for subscribers or accounts. It provides standard status descriptions and base indicators used for filtering active or non-active customer segments across the network.",
         "business_entity": "Status",
         "grain": "one row per status_id",
         "scd_note": null,
@@ -4210,22 +4239,17 @@
           {
             "term": "Active Status",
             "filter_sql": "status_desc = 'Active'",
-            "rationale": "STATUS_DESC='Active' designates the operational active state in the status dimension."
+            "rationale": "The status_desc column contains the value 'Active' which represents fully operational accounts."
           },
           {
-            "term": "Base Status Indicator",
+            "term": "Base Indicator Status",
             "filter_sql": "vftr_base_ind = 'Y'",
-            "rationale": "VFTR_BASE_IND='Y' identifies statuses that contribute to the base population."
-          },
-          {
-            "term": "Suspended Status",
-            "filter_sql": "status_desc = 'Suspend'",
-            "rationale": "STATUS_DESC='Suspend' represents the suspended state within the status classification."
+            "rationale": "The vftr_base_ind column is set to 'Y' for statuses that qualify for base population reporting."
           }
         ],
         "columns": {},
         "counting_warnings": [
-          "Use COUNT(DISTINCT status_id) when counting statuses to ensure proper cardinality handling."
+          "This is a low-cardinality dimension table containing only 9 lookup rows; avoid joining it unnecessarily in high-volume aggregate queries if status descriptions are not required."
         ],
         "suggested_joins": []
       },
@@ -4233,7 +4257,7 @@
         {
           "term": "Active Status",
           "filter_sql": "status_desc = 'Active'",
-          "rationale": "STATUS_DESC='Active' designates the operational active state in the status dimension.",
+          "rationale": "The status_desc column contains the value 'Active' which represents fully operational accounts.",
           "confidence": "high",
           "verified": true,
           "count": 1,
@@ -4241,23 +4265,13 @@
           "repair_attempts": 0
         },
         {
-          "term": "Base Status Indicator",
+          "term": "Base Indicator Status",
           "filter_sql": "vftr_base_ind = 'Y'",
-          "rationale": "VFTR_BASE_IND='Y' identifies statuses that contribute to the base population.",
+          "rationale": "The vftr_base_ind column is set to 'Y' for statuses that qualify for base population reporting.",
           "confidence": "high",
           "verified": true,
           "count": 4,
           "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_STATUS WHERE vftr_base_ind = 'Y'",
-          "repair_attempts": 0
-        },
-        {
-          "term": "Suspended Status",
-          "filter_sql": "status_desc = 'Suspend'",
-          "rationale": "STATUS_DESC='Suspend' represents the suspended state within the status classification.",
-          "confidence": "high",
-          "verified": true,
-          "count": 1,
-          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_STATUS WHERE status_desc = 'Suspend'",
           "repair_attempts": 0
         }
       ]
@@ -4615,35 +4629,30 @@
         }
       ],
       "semantics": {
-        "table_description": "The VID.D_SUBSCRIPTION_EXTENSION table stores extended profile and segment attributes for telecom subscriptions, including organization segments, tax/GİB verification indicators, and historical change tracking. It acts as a dimensional extension capturing subscriber classification details across different lines of business.",
+        "table_description": "This table stores extended attributes and historical segment details for telecommunication subscriptions, including organization segment changes, verification indicators, and effective date ranges. It acts as an extension dimension providing subscriber profile classifications and tax/verification flags.",
         "business_entity": "Subscription Extension",
-        "grain": "The grain of the table is at the subscription and effective period level, identified by subscription_id combined with extension start and end dates.",
-        "scd_note": "This table behaves like an SCD Type 2 structure tracking historical changes to subscription extensions via effective start date (subs_extension_sdt) and expiry date (subs_extension_edt).",
+        "grain": "subscription_id",
+        "scd_note": "Contains start and end dates (subs_extension_sdt, subs_extension_edt) but identified as SCD Type 1 in metadata with open-ended expiry dates.",
         "concepts": [
           {
             "term": "Esnaf Subscribers",
             "filter_sql": "subs_esnaf_ind = 'Y'",
-            "rationale": "Filters subscriptions flagged as belonging to the 'esnaf' (small business artisan) category where subs_esnaf_ind is 'Y'."
+            "rationale": "Indicates subscriptions tagged with the Esnaf artisan segment where subs_esnaf_ind is set to 'Y'."
           },
           {
-            "term": "GİB Verified Subscriptions",
+            "term": "GIB Verified Subscriptions",
             "filter_sql": "subs_gib_verification_ind = 'Y'",
-            "rationale": "Selects subscriptions that have successfully completed GİB (Revenue Administration) verification indicated by 'Y'."
+            "rationale": "Identifies subscriptions verified by the Revenue Administration (GIB) where subs_gib_verification_ind equals 'Y'."
           },
           {
-            "term": "Corporate Segment Subscriptions",
-            "filter_sql": "org_segment_cd = 'corporate'",
-            "rationale": "Isolates subscriptions mapped to the corporate organizational segment."
-          },
-          {
-            "term": "Mobile Postpay Subscriptions",
-            "filter_sql": "lob_cd = 'Mobile Postpay'",
-            "rationale": "Filters subscriptions belonging to the Mobile Postpay line of business."
+            "term": "Corporate Subscriptions",
+            "filter_sql": "cust_type_cd = 'Corporate'",
+            "rationale": "Selects corporate-type customers based on the cust_type_cd attribute."
           }
         ],
         "columns": {},
         "counting_warnings": [
-          "Because subscription history may be recorded across multiple rows per subscription_id, use COUNT(DISTINCT subscription_id) when counting unique subscribers rather than COUNT(*)."
+          "Use COUNT(DISTINCT subscription_id) rather than COUNT(*) since subscription records can span multiple segment history periods in the table."
         ],
         "suggested_joins": []
       },
@@ -4651,7 +4660,7 @@
         {
           "term": "Esnaf Subscribers",
           "filter_sql": "subs_esnaf_ind = 'Y'",
-          "rationale": "Filters subscriptions flagged as belonging to the 'esnaf' (small business artisan) category where subs_esnaf_ind is 'Y'.",
+          "rationale": "Indicates subscriptions tagged with the Esnaf artisan segment where subs_esnaf_ind is set to 'Y'.",
           "confidence": "high",
           "verified": true,
           "count": 1188,
@@ -4659,9 +4668,9 @@
           "repair_attempts": 0
         },
         {
-          "term": "GİB Verified Subscriptions",
+          "term": "GIB Verified Subscriptions",
           "filter_sql": "subs_gib_verification_ind = 'Y'",
-          "rationale": "Selects subscriptions that have successfully completed GİB (Revenue Administration) verification indicated by 'Y'.",
+          "rationale": "Identifies subscriptions verified by the Revenue Administration (GIB) where subs_gib_verification_ind equals 'Y'.",
           "confidence": "high",
           "verified": true,
           "count": 2006,
@@ -4669,23 +4678,13 @@
           "repair_attempts": 0
         },
         {
-          "term": "Corporate Segment Subscriptions",
-          "filter_sql": "org_segment_cd = 'corporate'",
-          "rationale": "Isolates subscriptions mapped to the corporate organizational segment.",
+          "term": "Corporate Subscriptions",
+          "filter_sql": "cust_type_cd = 'Corporate'",
+          "rationale": "Selects corporate-type customers based on the cust_type_cd attribute.",
           "confidence": "high",
           "verified": true,
-          "count": 1477,
-          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_SUBSCRIPTION_EXTENSION WHERE org_segment_cd = 'corporate'",
-          "repair_attempts": 0
-        },
-        {
-          "term": "Mobile Postpay Subscriptions",
-          "filter_sql": "lob_cd = 'Mobile Postpay'",
-          "rationale": "Filters subscriptions belonging to the Mobile Postpay line of business.",
-          "confidence": "high",
-          "verified": true,
-          "count": 8421,
-          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_SUBSCRIPTION_EXTENSION WHERE lob_cd = 'Mobile Postpay'",
+          "count": 1620,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_SUBSCRIPTION_EXTENSION WHERE cust_type_cd = 'Corporate'",
           "repair_attempts": 0
         }
       ]
@@ -5310,77 +5309,77 @@
         }
       ],
       "semantics": {
-        "table_description": "This table tracks historical device offers associated with subscriber contracts, including financial terms, device details, and campaign attributes. It maintains a historical record of device installment plans, promotional discounts, and contract statuses for mobile postpay and prepay subscribers.",
-        "business_entity": "Subscriber Device Offer",
+        "table_description": "This table captures historical device offer and contract information for telecom subscriptions, including device details, financial amounts such as installment and debt, and contract status tracking.",
+        "business_entity": "Subscription Offer Contract",
         "grain": "one row per (camp_row_id, subscription_id, offer_id, activation_shop_id, orginating_shop_id, channel_id, platform_id, lob_cd, contract_id, contract_status_cd)",
-        "scd_note": "Not an SCD Type 2 table; uses contract_start_date as an effective date attribute.",
+        "scd_note": null,
         "concepts": [
           {
-            "term": "Active Device Offers",
-            "filter_sql": "contract_status_cd = 'Active'",
-            "rationale": "contract_status_cd equals 'Active' indicates currently ongoing device offers."
+            "term": "Active Contracts",
+            "filter_sql": "cancel_ind = 'N' AND contract_status_cd = 'Active'",
+            "rationale": "Active contracts are identified where cancel indicator is N and contract status is Active."
           },
           {
             "term": "Cancelled Contracts",
-            "filter_sql": "cancel_ind = 'Y'",
-            "rationale": "cancel_ind equals 'Y' denotes device contracts that have been terminated or cancelled."
+            "filter_sql": "cancel_ind = 'Y' AND contract_status_cd = 'Cancelled'",
+            "rationale": "Cancelled contracts are identified where cancel indicator is Y and contract status is Cancelled."
+          },
+          {
+            "term": "Leakage Subscriptions",
+            "filter_sql": "leakage_flag = 'Y'",
+            "rationale": "Subscriptions experiencing leakage are flagged with leakage_flag set to Y."
           },
           {
             "term": "Buyback Transactions",
             "filter_sql": "buyback_flag = 'Y'",
-            "rationale": "buyback_flag equals 'Y' identifies records where an old device was traded in under a buyback scheme."
-          },
-          {
-            "term": "Leakage Flagged Offers",
-            "filter_sql": "leakage_flag = 'Y'",
-            "rationale": "leakage_flag equals 'Y' indicates cases flagged for revenue leakage or discrepancy."
+            "rationale": "Device buyback offers are captured where the buyback_flag is set to Y."
           }
         ],
         "columns": {},
         "counting_warnings": [
-          "Use COUNT(DISTINCT subscription_id) to count unique subscribers rather than COUNT(*), since a subscriber can have multiple offer history rows."
+          "Use COUNT(DISTINCT subscription_id) to count unique subscriptions since multiple offers or historical records can exist per subscription."
         ],
         "suggested_joins": []
       },
       "verified_concepts": [
         {
-          "term": "Active Device Offers",
-          "filter_sql": "contract_status_cd = 'Active'",
-          "rationale": "contract_status_cd equals 'Active' indicates currently ongoing device offers.",
+          "term": "Active Contracts",
+          "filter_sql": "cancel_ind = 'N' AND contract_status_cd = 'Active'",
+          "rationale": "Active contracts are identified where cancel indicator is N and contract status is Active.",
           "confidence": "high",
           "verified": true,
           "count": 5397,
-          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_SUBS_DEVICE_OFFER_HIST WHERE contract_status_cd = 'Active'",
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_SUBS_DEVICE_OFFER_HIST WHERE cancel_ind = 'N' AND contract_status_cd = 'Active'",
           "repair_attempts": 0
         },
         {
           "term": "Cancelled Contracts",
-          "filter_sql": "cancel_ind = 'Y'",
-          "rationale": "cancel_ind equals 'Y' denotes device contracts that have been terminated or cancelled.",
+          "filter_sql": "cancel_ind = 'Y' AND contract_status_cd = 'Cancelled'",
+          "rationale": "Cancelled contracts are identified where cancel indicator is Y and contract status is Cancelled.",
           "confidence": "high",
           "verified": true,
           "count": 173,
-          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_SUBS_DEVICE_OFFER_HIST WHERE cancel_ind = 'Y'",
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_SUBS_DEVICE_OFFER_HIST WHERE cancel_ind = 'Y' AND contract_status_cd = 'Cancelled'",
+          "repair_attempts": 0
+        },
+        {
+          "term": "Leakage Subscriptions",
+          "filter_sql": "leakage_flag = 'Y'",
+          "rationale": "Subscriptions experiencing leakage are flagged with leakage_flag set to Y.",
+          "confidence": "high",
+          "verified": true,
+          "count": 2833,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_SUBS_DEVICE_OFFER_HIST WHERE leakage_flag = 'Y'",
           "repair_attempts": 0
         },
         {
           "term": "Buyback Transactions",
           "filter_sql": "buyback_flag = 'Y'",
-          "rationale": "buyback_flag equals 'Y' identifies records where an old device was traded in under a buyback scheme.",
+          "rationale": "Device buyback offers are captured where the buyback_flag is set to Y.",
           "confidence": "high",
           "verified": true,
           "count": 403,
           "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_SUBS_DEVICE_OFFER_HIST WHERE buyback_flag = 'Y'",
-          "repair_attempts": 0
-        },
-        {
-          "term": "Leakage Flagged Offers",
-          "filter_sql": "leakage_flag = 'Y'",
-          "rationale": "leakage_flag equals 'Y' indicates cases flagged for revenue leakage or discrepancy.",
-          "confidence": "high",
-          "verified": true,
-          "count": 2833,
-          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_SUBS_DEVICE_OFFER_HIST WHERE leakage_flag = 'Y'",
           "repair_attempts": 0
         }
       ]
@@ -5833,38 +5832,38 @@
         }
       ],
       "semantics": {
-        "table_description": "This table captures historical subscription tariff assignments for mobile subscribers, detailing activation charges, discounts, and tax amounts. It tracks subscription offer periods alongside shop, channel, and platform attributes.",
+        "table_description": "This table captures historical subscription tariff and offer assignment details for telecom customers, including activation financial metrics such as gross amount, net amount, VAT, and discounts. It tracks changes in subscription tariffs over time across different shops, channels, platforms, and lines of business.",
         "business_entity": "Subscription Tariff History",
-        "grain": "One row per subscription tariff history record, uniquely identified by subscription_id, offer_id, activation_shop_id, orginating_shop_id, channel_id, platform_id, and lob_cd.",
+        "grain": "subscription_id, offer_id, activation_shop_id, orginating_shop_id, channel_id, platform_id, lob_cd",
         "scd_note": null,
         "concepts": [
           {
-            "term": "Mobile Postpay Offers",
+            "term": "Postpaid Subscription Tariffs",
             "filter_sql": "lob_cd = 'Mobile Postpay'",
-            "rationale": "Filters subscription tariff records specifically for mobile postpay lines of business."
+            "rationale": "Selects subscription tariff records specifically associated with mobile postpaid lines of business."
           },
           {
-            "term": "Offers With Discounts",
+            "term": "Prepaid Subscription Tariffs",
+            "filter_sql": "lob_cd = 'Mobile Prepay'",
+            "rationale": "Selects subscription tariff records specifically associated with mobile prepaid lines of business."
+          },
+          {
+            "term": "Discounted Activations",
             "filter_sql": "activation_disco_amt > 0",
-            "rationale": "Selects subscription offers that have a non-zero activation discount amount applied in TL."
-          },
-          {
-            "term": "Zero Fast Discount Rate",
-            "filter_sql": "fast_discount_rate = 0",
-            "rationale": "Isolates subscription records where no fast discount rate has been applied."
+            "rationale": "Identifies subscription tariff records that received a non-zero activation discount amount in Turkish Lira."
           }
         ],
         "columns": {},
         "counting_warnings": [
-          "Use COUNT(DISTINCT subscription_id) when calculating unique subscriber metrics since subscription records span multiple historical offers."
+          "Use COUNT(DISTINCT subscription_id) when calculating unique subscribers, as multiple offer history records can exist for a single subscription."
         ],
         "suggested_joins": []
       },
       "verified_concepts": [
         {
-          "term": "Mobile Postpay Offers",
+          "term": "Postpaid Subscription Tariffs",
           "filter_sql": "lob_cd = 'Mobile Postpay'",
-          "rationale": "Filters subscription tariff records specifically for mobile postpay lines of business.",
+          "rationale": "Selects subscription tariff records specifically associated with mobile postpaid lines of business.",
           "confidence": "high",
           "verified": true,
           "count": 10176,
@@ -5872,23 +5871,23 @@
           "repair_attempts": 0
         },
         {
-          "term": "Offers With Discounts",
+          "term": "Prepaid Subscription Tariffs",
+          "filter_sql": "lob_cd = 'Mobile Prepay'",
+          "rationale": "Selects subscription tariff records specifically associated with mobile prepaid lines of business.",
+          "confidence": "high",
+          "verified": true,
+          "count": 3699,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_SUBS_TARIFF_HIST WHERE lob_cd = 'Mobile Prepay'",
+          "repair_attempts": 0
+        },
+        {
+          "term": "Discounted Activations",
           "filter_sql": "activation_disco_amt > 0",
-          "rationale": "Selects subscription offers that have a non-zero activation discount amount applied in TL.",
+          "rationale": "Identifies subscription tariff records that received a non-zero activation discount amount in Turkish Lira.",
           "confidence": "high",
           "verified": true,
           "count": 5552,
           "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_SUBS_TARIFF_HIST WHERE activation_disco_amt > 0",
-          "repair_attempts": 0
-        },
-        {
-          "term": "Zero Fast Discount Rate",
-          "filter_sql": "fast_discount_rate = 0",
-          "rationale": "Isolates subscription records where no fast discount rate has been applied.",
-          "confidence": "high",
-          "verified": true,
-          "count": 8339,
-          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_SUBS_TARIFF_HIST WHERE fast_discount_rate = 0",
           "repair_attempts": 0
         }
       ]
@@ -6957,35 +6956,35 @@
         }
       ],
       "semantics": {
-        "table_description": "This table stores dimensional data for various telecom tariffs and service offers, including their pricing, eligibility criteria, and product characteristics. It is used to manage and reference tariff details across customer segments and billing systems.",
+        "table_description": "This table stores dimension data for various telecom tariffs and offers, containing pricing, eligibility rules, and flags for specific product features like digital availability, M2M compatibility, and age restrictions. It represents the catalog of available or historical tariff packages within the system.",
         "business_entity": "Tariff",
-        "grain": "One row per tariff offer, identified by offer_id, offer_num, partnum, status_cd, eligible_subs_type_cd, and sp_id.",
+        "grain": "One row per tariff offer identified by offer_id, offer_num, partnum, status_cd, eligible_subs_type_cd, and sp_id.",
         "scd_note": null,
         "concepts": [
           {
             "term": "Active Tariffs",
             "filter_sql": "status_cd = 'Active'",
-            "rationale": "STATUS_CD equals 'Active' identifies currently available or operational tariff offers."
+            "rationale": "status_cd equals 'Active' represents currently active tariff offerings in the catalog."
           },
           {
             "term": "Postpaid Tariffs",
             "filter_sql": "prepos_eligibility = 'POSTPAID'",
-            "rationale": "PREPOS_ELIGIBILITY equals 'POSTPAID' isolates tariffs available to postpaid subscribers."
-          },
-          {
-            "term": "Corporate Eligible Tariffs",
-            "filter_sql": "cbuebu_eligibility = 'EBU' OR eligible_subs_type_cd = 'CORPORATE'",
-            "rationale": "Selects tariff offers explicitly restricted or targeted towards enterprise and corporate business units."
+            "rationale": "prepos_eligibility equals 'POSTPAID' isolates tariffs targeted exclusively at postpaid subscribers."
           },
           {
             "term": "Digital Tariffs",
             "filter_sql": "digital_ind = 'Y'",
-            "rationale": "DIGITAL_IND equals 'Y' flags tariff offers that are digitally native or managed through online channels."
+            "rationale": "digital_ind equals 'Y' filters for tariffs that support digital channels or features."
+          },
+          {
+            "term": "Consumer (CBU) Tariffs",
+            "filter_sql": "cbuebu_eligibility = 'CBU'",
+            "rationale": "cbuebu_eligibility equals 'CBU' restricts the selection to Consumer Business Unit offerings."
           }
         ],
         "columns": {},
         "counting_warnings": [
-          "Use COUNT(DISTINCT offer_id) instead of COUNT(*) when counting unique tariff offers, as some offer IDs may span multiple configuration rows."
+          "Use COUNT(DISTINCT offer_id) instead of COUNT(*) when counting unique tariff offerings since multiple rows may exist per offer."
         ],
         "suggested_joins": []
       },
@@ -6993,7 +6992,7 @@
         {
           "term": "Active Tariffs",
           "filter_sql": "status_cd = 'Active'",
-          "rationale": "STATUS_CD equals 'Active' identifies currently available or operational tariff offers.",
+          "rationale": "status_cd equals 'Active' represents currently active tariff offerings in the catalog.",
           "confidence": "high",
           "verified": true,
           "count": 34,
@@ -7003,7 +7002,7 @@
         {
           "term": "Postpaid Tariffs",
           "filter_sql": "prepos_eligibility = 'POSTPAID'",
-          "rationale": "PREPOS_ELIGIBILITY equals 'POSTPAID' isolates tariffs available to postpaid subscribers.",
+          "rationale": "prepos_eligibility equals 'POSTPAID' isolates tariffs targeted exclusively at postpaid subscribers.",
           "confidence": "high",
           "verified": true,
           "count": 35,
@@ -7011,23 +7010,23 @@
           "repair_attempts": 0
         },
         {
-          "term": "Corporate Eligible Tariffs",
-          "filter_sql": "cbuebu_eligibility = 'EBU' OR eligible_subs_type_cd = 'CORPORATE'",
-          "rationale": "Selects tariff offers explicitly restricted or targeted towards enterprise and corporate business units.",
-          "confidence": "high",
-          "verified": true,
-          "count": 6,
-          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_TARIFF WHERE cbuebu_eligibility = 'EBU' OR eligible_subs_type_cd = 'CORPORATE'",
-          "repair_attempts": 0
-        },
-        {
           "term": "Digital Tariffs",
           "filter_sql": "digital_ind = 'Y'",
-          "rationale": "DIGITAL_IND equals 'Y' flags tariff offers that are digitally native or managed through online channels.",
+          "rationale": "digital_ind equals 'Y' filters for tariffs that support digital channels or features.",
           "confidence": "high",
           "verified": true,
           "count": 20,
           "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_TARIFF WHERE digital_ind = 'Y'",
+          "repair_attempts": 0
+        },
+        {
+          "term": "Consumer (CBU) Tariffs",
+          "filter_sql": "cbuebu_eligibility = 'CBU'",
+          "rationale": "cbuebu_eligibility equals 'CBU' restricts the selection to Consumer Business Unit offerings.",
+          "confidence": "high",
+          "verified": true,
+          "count": 32,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_TARIFF WHERE cbuebu_eligibility = 'CBU'",
           "repair_attempts": 0
         }
       ]
@@ -7501,30 +7500,30 @@
         }
       ],
       "semantics": {
-        "table_description": "The VID.F_CUSTOMER_D table maintains snapshot records of customer demographics, lifecycle events, tenure, and segmentation attributes over time. It provides a historical daily view of customer accounts, their current and previous statuses, and program eligibility.",
+        "table_description": "This table captures daily snapshot attributes of telecom customers, including their current and previous status, market segments, tenure, and eligibility indicators. It tracks changes over time across multiple snapshot dates for analytical and reporting purposes.",
         "business_entity": "Customer",
-        "grain": "The grain of the table is at the customer by snapshot date level (cust_id, snapshot_dt).",
+        "grain": "One record per customer per snapshot date (cust_id, snapshot_dt)",
         "scd_note": null,
         "concepts": [
           {
             "term": "Active Customers",
             "filter_sql": "cust_last_status_cd = 'Active'",
-            "rationale": "CUST_LAST_STATUS_CD equals 'Active' to identify customers currently in an active state."
+            "rationale": "Citations from cust_last_status_cd show Active as the primary operational status for current customers."
           },
           {
             "term": "CVM Eligible Customers",
             "filter_sql": "cust_cvm_eligible_ind = 'Y'",
-            "rationale": "CUST_CVM_ELIGIBLE_IND equals 'Y' to target customers eligible for customer value management campaigns."
+            "rationale": "The cust_cvm_eligible_ind column flags customers eligible for Customer Value Management campaigns with 'Y'."
           },
           {
             "term": "Consumer Segment Customers",
             "filter_sql": "cust_market_segment_cd = 'Consumer'",
-            "rationale": "CUST_MARKET_SEGMENT_CD equals 'Consumer' to filter residential retail customers."
+            "rationale": "The cust_market_segment_cd value 'Consumer' identifies residential or individual consumer accounts."
           }
         ],
         "columns": {},
         "counting_warnings": [
-          "Since this table is stored at a snapshot grain across multiple snapshot dates, use COUNT(DISTINCT cust_id) when calculating distinct customer metrics to avoid double-counting across dates."
+          "This is a snapshot table containing multiple dates per customer; use COUNT(DISTINCT cust_id) when calculating distinct customer metrics across multiple snapshot dates to avoid duplicate counting."
         ],
         "suggested_joins": []
       },
@@ -7532,7 +7531,7 @@
         {
           "term": "Active Customers",
           "filter_sql": "cust_last_status_cd = 'Active'",
-          "rationale": "CUST_LAST_STATUS_CD equals 'Active' to identify customers currently in an active state.",
+          "rationale": "Citations from cust_last_status_cd show Active as the primary operational status for current customers.",
           "confidence": "high",
           "verified": true,
           "count": 38101,
@@ -7542,7 +7541,7 @@
         {
           "term": "CVM Eligible Customers",
           "filter_sql": "cust_cvm_eligible_ind = 'Y'",
-          "rationale": "CUST_CVM_ELIGIBLE_IND equals 'Y' to target customers eligible for customer value management campaigns.",
+          "rationale": "The cust_cvm_eligible_ind column flags customers eligible for Customer Value Management campaigns with 'Y'.",
           "confidence": "high",
           "verified": true,
           "count": 29302,
@@ -7552,7 +7551,7 @@
         {
           "term": "Consumer Segment Customers",
           "filter_sql": "cust_market_segment_cd = 'Consumer'",
-          "rationale": "CUST_MARKET_SEGMENT_CD equals 'Consumer' to filter residential retail customers.",
+          "rationale": "The cust_market_segment_cd value 'Consumer' identifies residential or individual consumer accounts.",
           "confidence": "high",
           "verified": true,
           "count": 28651,
@@ -8641,30 +8640,30 @@
         }
       ],
       "semantics": {
-        "table_description": "This table tracks telecommunication subscription lifecycle key performance indicators, capturing transitions such as gross adds, disconnections, migrations, and barrings. It records status and offer changes alongside customer and channel details over specific snapshots and event timestamps.",
-        "business_entity": "Subscription Lifecycle KPI",
+        "table_description": "VID.F_LIFECYCLE_KPI is a fact table tracking subscriber lifecycle events, status transitions, and offer changes across various mobile platforms. It captures events such as gross additions, disconnections, migrations, and barring alongside metadata about customer segments, shops, and tariffs.",
+        "business_entity": "Subscription Lifecycle Event",
         "grain": "one row per (subscription_id, cust_id, lifecycle_group_cd, lifecycle_event_cd, to_main_offer_id, to_cust_market_seg_cd, activation_shop_id, orginating_shop_id, channel_id, platform_id, lob_cd, cust_type_cd)",
-        "scd_note": "SCD Type 2 tracked using from_main_offer_sdt and to_main_offer_sdt.",
+        "scd_note": "SCD Type 2 tracked via from_main_offer_sdt and to_main_offer_sdt.",
         "concepts": [
           {
             "term": "Gross Add Events",
             "filter_sql": "lifecycle_group_cd = 'grossadd'",
-            "rationale": "lifecycle_group_cd equals 'grossadd' to isolate new subscriber acquisitions."
-          },
-          {
-            "term": "Mobile Postpay Subscriptions",
-            "filter_sql": "lob_cd = 'Mobile Postpay'",
-            "rationale": "lob_cd equals 'Mobile Postpay' to filter for postpay line of business records."
+            "rationale": "The lifecycle_group_cd column represents gross add events when set to grossadd."
           },
           {
             "term": "Active Target Status",
             "filter_sql": "to_status = 'Active'",
-            "rationale": "to_status equals 'Active' represents subscriptions in active operational state after the event."
+            "rationale": "The to_status column indicates the ending status of the subscription, filtered here for active states."
+          },
+          {
+            "term": "Mobile Postpay Subscriptions",
+            "filter_sql": "lob_cd = 'Mobile Postpay'",
+            "rationale": "The lob_cd column categorizes the line of business, filtered here for mobile postpay customers."
           }
         ],
         "columns": {},
         "counting_warnings": [
-          "use COUNT(DISTINCT subscription_id) rather than COUNT(*) when measuring unique subscriber metrics since subscriptions can undergo multiple lifecycle events."
+          "Use COUNT(DISTINCT subscription_id) when calculating unique subscriber counts as subscriptions can have multiple lifecycle events."
         ],
         "suggested_joins": []
       },
@@ -8672,7 +8671,7 @@
         {
           "term": "Gross Add Events",
           "filter_sql": "lifecycle_group_cd = 'grossadd'",
-          "rationale": "lifecycle_group_cd equals 'grossadd' to isolate new subscriber acquisitions.",
+          "rationale": "The lifecycle_group_cd column represents gross add events when set to grossadd.",
           "confidence": "high",
           "verified": true,
           "count": 3196,
@@ -8680,23 +8679,23 @@
           "repair_attempts": 0
         },
         {
-          "term": "Mobile Postpay Subscriptions",
-          "filter_sql": "lob_cd = 'Mobile Postpay'",
-          "rationale": "lob_cd equals 'Mobile Postpay' to filter for postpay line of business records.",
-          "confidence": "high",
-          "verified": true,
-          "count": 5155,
-          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.F_LIFECYCLE_KPI WHERE lob_cd = 'Mobile Postpay'",
-          "repair_attempts": 0
-        },
-        {
           "term": "Active Target Status",
           "filter_sql": "to_status = 'Active'",
-          "rationale": "to_status equals 'Active' represents subscriptions in active operational state after the event.",
+          "rationale": "The to_status column indicates the ending status of the subscription, filtered here for active states.",
           "confidence": "high",
           "verified": true,
           "count": 4912,
           "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.F_LIFECYCLE_KPI WHERE to_status = 'Active'",
+          "repair_attempts": 0
+        },
+        {
+          "term": "Mobile Postpay Subscriptions",
+          "filter_sql": "lob_cd = 'Mobile Postpay'",
+          "rationale": "The lob_cd column categorizes the line of business, filtered here for mobile postpay customers.",
+          "confidence": "high",
+          "verified": true,
+          "count": 5155,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.F_LIFECYCLE_KPI WHERE lob_cd = 'Mobile Postpay'",
           "repair_attempts": 0
         }
       ]
@@ -9940,36 +9939,36 @@
         }
       ],
       "semantics": {
-        "table_description": "This table stores aggregated daily rated main usage data for subscribers, capturing metrics such as activity counts, durations, charges, and data volumes across voice and data services. It provides detailed breakdowns by network direction, roaming status, bearer technology, and offer associations.",
+        "table_description": "This table stores daily aggregated main usage metrics for subscribers, covering both voice and data services across different bearers, network directions, and roaming conditions. It tracks activity counts, durations, volumes, and charges, enabling detailed analysis of customer usage patterns and billing.",
         "business_entity": "Subscriber Usage",
-        "grain": "Aggregated daily per subscriber, usage type, bearer, line of business, market segment, customer type, device type, offers, services, applications, network directions, and roaming details.",
+        "grain": "Aggregated daily per subscriber, usage type, bearer, line of business, market segment, displayed type, device type, primary and charged offers, service, application, network direction, on/off net, roamer type, roaming country and partner, b-number service provider and country, and VAS offer.",
         "scd_note": null,
         "concepts": [
           {
             "term": "International Usage",
             "filter_sql": "network_international_ind = 'Y'",
-            "rationale": "The network_international_ind column equals 'Y' to identify usage that occurred internationally."
+            "rationale": "The network_international_ind column equals 'Y' to identify international network usage events."
           },
           {
             "term": "Over Usage",
             "filter_sql": "over_usage_ind = 'Y'",
-            "rationale": "The over_usage_ind column equals 'Y' to flag usage that exceeds the customer's plan allowance."
+            "rationale": "The over_usage_ind column equals 'Y' to isolate records where usage exceeded the allocated bundle limits."
           },
           {
             "term": "Voice Usage",
             "filter_sql": "usage_type_cd = 'VOICE'",
-            "rationale": "The usage_type_cd column is set to 'VOICE' for calls and voice-related activities."
+            "rationale": "The usage_type_cd column equals 'VOICE' to filter specifically for voice call activities."
           },
           {
             "term": "Data Usage",
             "filter_sql": "usage_type_cd = 'DATA'",
-            "rationale": "The usage_type_cd column is set to 'DATA' for internet and data session activities."
+            "rationale": "The usage_type_cd column equals 'DATA' to filter specifically for data session activities."
           }
         ],
         "columns": {},
         "counting_warnings": [
-          "Use COUNT(DISTINCT subscr_id) when counting unique subscribers, as multiple records exist per subscriber across different usage types, bearers, and dates.",
-          "Use SUM(total_charge) for aggregating revenue rather than COUNT(*)."
+          "Use COUNT(DISTINCT subscr_id) when calculating unique active subscribers to avoid duplication across multiple usage types and attributes.",
+          "Be aware that columns such as application_cd, roamer_type_cd, roaming_country_id, roaming_partner_id, and vas_offer_id contain significant null percentages and should be handled appropriately in aggregations."
         ],
         "suggested_joins": []
       },
@@ -9977,7 +9976,7 @@
         {
           "term": "International Usage",
           "filter_sql": "network_international_ind = 'Y'",
-          "rationale": "The network_international_ind column equals 'Y' to identify usage that occurred internationally.",
+          "rationale": "The network_international_ind column equals 'Y' to identify international network usage events.",
           "confidence": "high",
           "verified": true,
           "count": 1641,
@@ -9987,7 +9986,7 @@
         {
           "term": "Over Usage",
           "filter_sql": "over_usage_ind = 'Y'",
-          "rationale": "The over_usage_ind column equals 'Y' to flag usage that exceeds the customer's plan allowance.",
+          "rationale": "The over_usage_ind column equals 'Y' to isolate records where usage exceeded the allocated bundle limits.",
           "confidence": "high",
           "verified": true,
           "count": 4939,
@@ -9997,7 +9996,7 @@
         {
           "term": "Voice Usage",
           "filter_sql": "usage_type_cd = 'VOICE'",
-          "rationale": "The usage_type_cd column is set to 'VOICE' for calls and voice-related activities.",
+          "rationale": "The usage_type_cd column equals 'VOICE' to filter specifically for voice call activities.",
           "confidence": "high",
           "verified": true,
           "count": 20808,
@@ -10007,7 +10006,7 @@
         {
           "term": "Data Usage",
           "filter_sql": "usage_type_cd = 'DATA'",
-          "rationale": "The usage_type_cd column is set to 'DATA' for internet and data session activities.",
+          "rationale": "The usage_type_cd column equals 'DATA' to filter specifically for data session activities.",
           "confidence": "high",
           "verified": true,
           "count": 20808,
@@ -11663,77 +11662,63 @@
         }
       ],
       "semantics": {
-        "table_description": "This dimension table tracks comprehensive historical and snapshot-level attributes of telecommunications subscriptions, including status details, tenure, offerings, technology capabilities, and lifecycle event timestamps. It is structured as an SCD Type 2 dimension capturing historical changes per subscription across multiple snapshot dates.",
-        "business_entity": "Subscription",
-        "grain": "subscription_id, snapshot_dt",
-        "scd_note": "This table functions as an SCD Type 2 dimension tracked across snapshot dates using subs_digital_start_dt and last_5g_optout_dt.",
+        "table_description": "This table stores daily snapshot records of mobile subscriber attributes, lifecycle events, and service configurations within a telecom environment. It tracks subscription details, plan offerings, status changes, network technologies, and digital participation over time.",
+        "business_entity": "Subscriber",
+        "grain": "The grain is defined by subscription_id and snapshot_dt.",
+        "scd_note": "This is an SCD Type 2 dimension table tracked using snapshot dates, where historical state changes are recorded across daily partitions.",
         "concepts": [
           {
-            "term": "Active Subscriptions",
-            "filter_sql": "status_id = 1",
-            "rationale": "Status ID 1 represents the active subscription state as shown by the highest frequency count in the distribution."
+            "term": "Active 5G Subscribers",
+            "filter_sql": "subs_5g_ind = 'Y' AND hlr_status_cd = 'HLR_ACTIVE'",
+            "rationale": "Subscribers currently provisioned with 5G capabilities and possessing an active HLR status."
           },
           {
-            "term": "Mobile Postpay Subscriptions",
-            "filter_sql": "lob_cd = 'Mobile Postpay'",
-            "rationale": "LOB Code 'Mobile Postpay' filters subscriptions belonging to the postpay line of business segment."
+            "term": "Postpaid Consumers",
+            "filter_sql": "lob_cd = 'Mobile Postpay' AND cust_market_segment_cd = 'Consumer'",
+            "rationale": "Identifies consumer segment accounts utilizing mobile postpay line-of-business offerings."
           },
           {
-            "term": "5G Opted-In Subscriptions",
-            "filter_sql": "subs_5g_ind = 'Y'",
-            "rationale": "The indicator flag value 'Y' for subs_5g_ind isolates subscribers with active 5G capabilities."
-          },
-          {
-            "term": "Consumer Market Segment",
-            "filter_sql": "cust_market_segment_cd = 'Consumer'",
-            "rationale": "The customer market segment code 'Consumer' filters individual retail subscriber records."
+            "term": "Volte Enabled Subscribers",
+            "filter_sql": "volte_ind = 'Y' AND voice_ind = 'Y'",
+            "rationale": "Subscribers who have voice service enabled alongside Voice over LTE capabilities."
           }
         ],
         "columns": {},
         "counting_warnings": [
-          "Since this table records snapshots and SCD history, use COUNT(DISTINCT subscription_id) to count unique subscriptions rather than COUNT(*)."
+          "Since this is a snapshot table with multiple records per subscription across dates, use COUNT(DISTINCT subscription_id) when calculating total distinct subscribers.",
+          "Avoid using bare COUNT(*) without filtering by snapshot_dt or subscription_id to prevent multi-counting historical snapshot duplicates."
         ],
         "suggested_joins": []
       },
       "verified_concepts": [
         {
-          "term": "Active Subscriptions",
-          "filter_sql": "status_id = 1",
-          "rationale": "Status ID 1 represents the active subscription state as shown by the highest frequency count in the distribution.",
+          "term": "Active 5G Subscribers",
+          "filter_sql": "subs_5g_ind = 'Y' AND hlr_status_cd = 'HLR_ACTIVE'",
+          "rationale": "Subscribers currently provisioned with 5G capabilities and possessing an active HLR status.",
           "confidence": "high",
           "verified": true,
-          "count": 49448,
-          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.F_SUBSCRIPTION_D WHERE status_id = 1",
+          "count": 16093,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.F_SUBSCRIPTION_D WHERE subs_5g_ind = 'Y' AND hlr_status_cd = 'HLR_ACTIVE'",
           "repair_attempts": 0
         },
         {
-          "term": "Mobile Postpay Subscriptions",
-          "filter_sql": "lob_cd = 'Mobile Postpay'",
-          "rationale": "LOB Code 'Mobile Postpay' filters subscriptions belonging to the postpay line of business segment.",
+          "term": "Postpaid Consumers",
+          "filter_sql": "lob_cd = 'Mobile Postpay' AND cust_market_segment_cd = 'Consumer'",
+          "rationale": "Identifies consumer segment accounts utilizing mobile postpay line-of-business offerings.",
           "confidence": "high",
           "verified": true,
-          "count": 45682,
-          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.F_SUBSCRIPTION_D WHERE lob_cd = 'Mobile Postpay'",
+          "count": 31171,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.F_SUBSCRIPTION_D WHERE lob_cd = 'Mobile Postpay' AND cust_market_segment_cd = 'Consumer'",
           "repair_attempts": 0
         },
         {
-          "term": "5G Opted-In Subscriptions",
-          "filter_sql": "subs_5g_ind = 'Y'",
-          "rationale": "The indicator flag value 'Y' for subs_5g_ind isolates subscribers with active 5G capabilities.",
+          "term": "Volte Enabled Subscribers",
+          "filter_sql": "volte_ind = 'Y' AND voice_ind = 'Y'",
+          "rationale": "Subscribers who have voice service enabled alongside Voice over LTE capabilities.",
           "confidence": "high",
           "verified": true,
-          "count": 18767,
-          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.F_SUBSCRIPTION_D WHERE subs_5g_ind = 'Y'",
-          "repair_attempts": 0
-        },
-        {
-          "term": "Consumer Market Segment",
-          "filter_sql": "cust_market_segment_cd = 'Consumer'",
-          "rationale": "The customer market segment code 'Consumer' filters individual retail subscriber records.",
-          "confidence": "high",
-          "verified": true,
-          "count": 43001,
-          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.F_SUBSCRIPTION_D WHERE cust_market_segment_cd = 'Consumer'",
+          "count": 39067,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.F_SUBSCRIPTION_D WHERE volte_ind = 'Y' AND voice_ind = 'Y'",
           "repair_attempts": 0
         }
       ]
@@ -11893,30 +11878,30 @@
         }
       ],
       "semantics": {
-        "table_description": "This table captures daily subscription-level 5G capability, usage metrics, and device settings snapshots. It stores indicator flags regarding 5G eligibility, potential 5G usage, and device-level 5G configuration states along with their respective timestamps.",
+        "table_description": "This table captures daily snapshot metrics regarding subscription-level 5G capability, eligibility, and device settings in the telecommunication network. It tracks indicators such as 5G eligibility, potential 5G usage, device settings, and the timestamps of the last 5G configuration changes per subscription.",
         "business_entity": "Subscription",
-        "grain": "The grain of the table is per subscription per snapshot date (snapshot_dt, subscription_id).",
+        "grain": "The grain of the table is defined by snapshot date and subscription ID (snapshot_dt, subscription_id).",
         "scd_note": null,
         "concepts": [
           {
             "term": "5G Eligible Subscriptions",
             "filter_sql": "is_5g_eligible_ind = 'Y'",
-            "rationale": "Subscriptions marked with 'Y' in the is_5g_eligible_ind column indicate eligibility for 5G network services."
+            "rationale": "Subscriptions that are officially marked as eligible for 5G services based on their plan or profile."
           },
           {
             "term": "Possible 5G Subscriptions",
             "filter_sql": "possible_5g_ind = 'Y'",
-            "rationale": "Subscriptions with 'Y' in the possible_5g_ind column denote that 5G capability is detected as possible."
+            "rationale": "Subscriptions where the network or profile indicates a potential capability for 5G usage."
           },
           {
             "term": "5G Device Settings Enabled",
             "filter_sql": "device_5g_settings_ind = 'Y'",
-            "rationale": "Subscriptions where the device_5g_settings_ind is 'Y' show that 5G settings are currently enabled on the device."
+            "rationale": "Subscriptions where the user's device settings have 5G explicitly enabled."
           }
         ],
         "columns": {},
         "counting_warnings": [
-          "Since this is a snapshot table with multiple records per subscription across snapshot dates, use COUNT(DISTINCT subscription_id) when counting unique subscriptions rather than COUNT(*)."
+          "Since this table contains daily snapshots per subscription, use COUNT(DISTINCT subscription_id) when calculating unique subscriber counts over a time range to avoid double counting."
         ],
         "suggested_joins": []
       },
@@ -11924,7 +11909,7 @@
         {
           "term": "5G Eligible Subscriptions",
           "filter_sql": "is_5g_eligible_ind = 'Y'",
-          "rationale": "Subscriptions marked with 'Y' in the is_5g_eligible_ind column indicate eligibility for 5G network services.",
+          "rationale": "Subscriptions that are officially marked as eligible for 5G services based on their plan or profile.",
           "confidence": "high",
           "verified": true,
           "count": 28112,
@@ -11934,7 +11919,7 @@
         {
           "term": "Possible 5G Subscriptions",
           "filter_sql": "possible_5g_ind = 'Y'",
-          "rationale": "Subscriptions with 'Y' in the possible_5g_ind column denote that 5G capability is detected as possible.",
+          "rationale": "Subscriptions where the network or profile indicates a potential capability for 5G usage.",
           "confidence": "high",
           "verified": true,
           "count": 33446,
@@ -11944,7 +11929,7 @@
         {
           "term": "5G Device Settings Enabled",
           "filter_sql": "device_5g_settings_ind = 'Y'",
-          "rationale": "Subscriptions where the device_5g_settings_ind is 'Y' show that 5G settings are currently enabled on the device.",
+          "rationale": "Subscriptions where the user's device settings have 5G explicitly enabled.",
           "confidence": "high",
           "verified": true,
           "count": 17024,
@@ -13286,30 +13271,30 @@
         }
       ],
       "semantics": {
-        "table_description": "This table tracks daily subscription analysis information including tariff offers, pricing details, and smart discount metrics for telecom subscribers. It operates as an SCD Type 2 dimension capturing changes over time based on discount start and end dates.",
+        "table_description": "This table captures subscription-level analysis for Mobile Average Fee (MAF) including applied tariff offers, pricing details, and smart discount contracts over time. It provides a daily snapshot view of subscriber-level tariff assignments, promotional details, and discount durations.",
         "business_entity": "Subscription",
-        "grain": "Subscription grain defined by subscription_id, bill_acct_billing_cycle_cd, tariff_offer_id, tariff_offer_partnum, smart_discount_offer_partnum, and discount_offer_id across snapshots.",
-        "scd_note": "SCD Type 2 tracked using smart_discount_start_dt as the effective date and smart_discount_end_dt as the expiry date.",
+        "grain": "The grain is defined by subscription_id, bill_acct_billing_cycle_cd, tariff_offer_id, tariff_offer_partnum, smart_discount_offer_partnum, and discount_offer_id across daily snapshots.",
+        "scd_note": "This is an SCD Type 2 table tracked using smart_discount_start_dt and smart_discount_end_dt.",
         "concepts": [
           {
             "term": "Voice and Data Subscriptions",
             "filter_sql": "voice_data_ind = 'Y'",
-            "rationale": "Subscriptions marked with 'Y' indicate that both voice and data services are active on the plan."
+            "rationale": "Subscriptions that support both voice and data services are identified by voice_data_ind set to 'Y'."
           },
           {
-            "term": "Postpaid Corporate Business Unit Subscribers",
-            "filter_sql": "subs_cust_comb_type = 'POS CBU'",
-            "rationale": "Filters for postpaid consumer business unit subscriptions based on customer combination type."
-          },
-          {
-            "term": "Subscribers with Smart Discount Contracts",
+            "term": "Active Smart Contracts",
             "filter_sql": "nof_smart_contract = 1",
-            "rationale": "Indicates subscriptions that currently have an active smart discount contract associated with them."
+            "rationale": "Subscriptions with an active smart discount contract are identified where nof_smart_contract equals 1."
+          },
+          {
+            "term": "Corporate Business Unit Subscriptions",
+            "filter_sql": "subs_cust_comb_type = 'POS EBU'",
+            "rationale": "Enterprise Business Unit postpaid subscribers are identified by the customer combination type 'POS EBU'."
           }
         ],
         "columns": {},
         "counting_warnings": [
-          "Use COUNT(DISTINCT subscription_id) when counting unique subscribers, as the table contains multiple records per subscription due to historical snapshots and multiple tariff or discount offers."
+          "Use COUNT(DISTINCT subscription_id) rather than COUNT(*) because the table contains snapshot data and multiple rows per subscription."
         ],
         "suggested_joins": []
       },
@@ -13317,7 +13302,7 @@
         {
           "term": "Voice and Data Subscriptions",
           "filter_sql": "voice_data_ind = 'Y'",
-          "rationale": "Subscriptions marked with 'Y' indicate that both voice and data services are active on the plan.",
+          "rationale": "Subscriptions that support both voice and data services are identified by voice_data_ind set to 'Y'.",
           "confidence": "high",
           "verified": true,
           "count": 33887,
@@ -13325,23 +13310,23 @@
           "repair_attempts": 0
         },
         {
-          "term": "Postpaid Corporate Business Unit Subscribers",
-          "filter_sql": "subs_cust_comb_type = 'POS CBU'",
-          "rationale": "Filters for postpaid consumer business unit subscriptions based on customer combination type.",
-          "confidence": "high",
-          "verified": true,
-          "count": 34111,
-          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.F_SUBS_MAF_ANALYSIS_D WHERE subs_cust_comb_type = 'POS CBU'",
-          "repair_attempts": 0
-        },
-        {
-          "term": "Subscribers with Smart Discount Contracts",
+          "term": "Active Smart Contracts",
           "filter_sql": "nof_smart_contract = 1",
-          "rationale": "Indicates subscriptions that currently have an active smart discount contract associated with them.",
+          "rationale": "Subscriptions with an active smart discount contract are identified where nof_smart_contract equals 1.",
           "confidence": "high",
           "verified": true,
           "count": 13706,
           "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.F_SUBS_MAF_ANALYSIS_D WHERE nof_smart_contract = 1",
+          "repair_attempts": 0
+        },
+        {
+          "term": "Corporate Business Unit Subscriptions",
+          "filter_sql": "subs_cust_comb_type = 'POS EBU'",
+          "rationale": "Enterprise Business Unit postpaid subscribers are identified by the customer combination type 'POS EBU'.",
+          "confidence": "high",
+          "verified": true,
+          "count": 4991,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.F_SUBS_MAF_ANALYSIS_D WHERE subs_cust_comb_type = 'POS EBU'",
           "repair_attempts": 0
         }
       ]
@@ -13984,53 +13969,43 @@
         }
       ],
       "semantics": {
-        "table_description": "This table stores dimensional information about various telecom offerings, including tariffs, devices, add-ons, and campaigns available to customers. It contains pricing, duration, eligibility criteria, and specialized attribute indicators for each offering.",
+        "table_description": "This table stores dimensional information about various telecom offerings including tariffs, devices, addons, and discounts available to subscribers. It captures attributes such as pricing, eligibility segments, recurring types, and specific indicator flags for features like 4G data or digital options.",
         "business_entity": "Offering",
         "grain": "Each row represents a unique offering identified by offer_id, offer_num, and partnum.",
         "scd_note": null,
         "concepts": [
           {
-            "term": "Data Enabled Offerings",
-            "filter_sql": "data_ind = 'Y'",
-            "rationale": "DATA_IND='Y' indicates offerings that include data capabilities."
-          },
-          {
             "term": "Recurring Offerings",
             "filter_sql": "recurring_ind = 'Y'",
-            "rationale": "RECURRING_IND='Y' signifies offerings billed on a recurring cycle such as monthly."
+            "rationale": "recurring_ind = 'Y' identifies offerings that renew on a recurring basis."
           },
           {
             "term": "Device Offerings",
             "filter_sql": "offer_subtype_cd = 'DEVICE'",
-            "rationale": "OFFER_SUBTYPE_CD='DEVICE' specifies that the offering is a hardware device campaign."
+            "rationale": "offer_subtype_cd = 'DEVICE' filters for hardware and device campaign offerings."
           },
           {
             "term": "Postpaid Eligible Offerings",
             "filter_sql": "prepos_eligibility = 'POSTPAID'",
-            "rationale": "PREPOS_ELIGIBILITY='POSTPAID' isolates offerings restricted to postpaid subscriber segments."
+            "rationale": "prepos_eligibility = 'POSTPAID' restricts offerings exclusively available to postpaid subscribers."
+          },
+          {
+            "term": "Data Enabled Offerings",
+            "filter_sql": "data_ind = 'Y'",
+            "rationale": "data_ind = 'Y' selects offerings that include data allocations or services."
           }
         ],
         "columns": {},
         "counting_warnings": [
-          "Use COUNT(DISTINCT offer_id) when evaluating unique offers since multiple records can exist for different part numbers or subtypes."
+          "Use COUNT(DISTINCT offer_id) instead of COUNT(*) when evaluating unique offerings to prevent duplicate counting across alternative grain identifiers."
         ],
         "suggested_joins": []
       },
       "verified_concepts": [
         {
-          "term": "Data Enabled Offerings",
-          "filter_sql": "data_ind = 'Y'",
-          "rationale": "DATA_IND='Y' indicates offerings that include data capabilities.",
-          "confidence": "high",
-          "verified": true,
-          "count": 45,
-          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.VD_OFFERING WHERE data_ind = 'Y'",
-          "repair_attempts": 0
-        },
-        {
           "term": "Recurring Offerings",
           "filter_sql": "recurring_ind = 'Y'",
-          "rationale": "RECURRING_IND='Y' signifies offerings billed on a recurring cycle such as monthly.",
+          "rationale": "recurring_ind = 'Y' identifies offerings that renew on a recurring basis.",
           "confidence": "high",
           "verified": true,
           "count": 50,
@@ -14040,7 +14015,7 @@
         {
           "term": "Device Offerings",
           "filter_sql": "offer_subtype_cd = 'DEVICE'",
-          "rationale": "OFFER_SUBTYPE_CD='DEVICE' specifies that the offering is a hardware device campaign.",
+          "rationale": "offer_subtype_cd = 'DEVICE' filters for hardware and device campaign offerings.",
           "confidence": "high",
           "verified": true,
           "count": 186,
@@ -14050,15 +14025,25 @@
         {
           "term": "Postpaid Eligible Offerings",
           "filter_sql": "prepos_eligibility = 'POSTPAID'",
-          "rationale": "PREPOS_ELIGIBILITY='POSTPAID' isolates offerings restricted to postpaid subscriber segments.",
+          "rationale": "prepos_eligibility = 'POSTPAID' restricts offerings exclusively available to postpaid subscribers.",
           "confidence": "high",
           "verified": true,
           "count": 183,
           "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.VD_OFFERING WHERE prepos_eligibility = 'POSTPAID'",
           "repair_attempts": 0
+        },
+        {
+          "term": "Data Enabled Offerings",
+          "filter_sql": "data_ind = 'Y'",
+          "rationale": "data_ind = 'Y' selects offerings that include data allocations or services.",
+          "confidence": "high",
+          "verified": true,
+          "count": 45,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.VD_OFFERING WHERE data_ind = 'Y'",
+          "repair_attempts": 0
         }
       ]
     }
   ],
-  "version": "b2f101cf4c0f12a4"
+  "version": "d4569136fc39ee29"
 }

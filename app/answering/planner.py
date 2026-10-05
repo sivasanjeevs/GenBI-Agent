@@ -154,12 +154,15 @@ ORACLE SQL RULES:
 1. Always qualify every column with a table alias (e.g. s.status).
 2. Use DATE 'YYYY-MM-DD' for date literals.
 3. Use half-open date ranges: col >= DATE '...' AND col < DATE '...' (prevents double-counting).
-4. For SCD Type-2 tables apply the scd_handling filter from the plan.
+4. For SCD Type-2 tables apply the scd_handling filter from the plan. If asked for "active" or "current" entities, always ensure you filter for active records (e.g. _edt >= SYSDATE) if an end-date column exists.
 5. Use COUNT(DISTINCT <key>) when counting unique entities.
 6. Never invent columns or tables not present in the semantic layer.
 7. Use NVL(), TRUNC(), DECODE() – not IFNULL, FLOOR, IF().
 8. Return a single SELECT statement. No trailing semicolon.
 9. Start the query with a comment: -- Answers: <one-line summary>
+10. When asked to "list" entities, include standard descriptive columns (like ID, Name) and add a logical ORDER BY clause.
+11. When asked for the "highest", "lowest", or "top" category, DO NOT wrap the query to return only 1 row (no ROWNUM = 1). Return the full grouped result set ORDER BY the aggregate metric DESC (or ASC).
+12. Pay close attention to verbs. "Assigned in June" means the Start Date (SDT) is in June. "Active in June" means the record overlaps June.
 
 Write ONLY the SQL. No markdown. No explanation.
 """

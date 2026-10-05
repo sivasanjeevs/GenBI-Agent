@@ -4,29 +4,33 @@ interface AnswerCardProps {
 
 export default function AnswerCard({ data }: AnswerCardProps) {
   return (
-    <div className="relative p-8 overflow-hidden group">
-      {/* Dynamic background glow */}
-      <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-dg-primary/10 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2" />
-      <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-dg-accent/10 rounded-full blur-[80px] translate-y-1/2 -translate-x-1/2" />
-      
+    <div className="relative p-7 overflow-hidden group">
+      {/* Subtle ambient glows */}
+      <div className="absolute top-0 right-0 w-64 h-64 bg-dg-primary/8 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-64 h-64 bg-dg-accent/8 rounded-full blur-[80px] translate-y-1/2 -translate-x-1/2 pointer-events-none" />
+
       <div className="relative z-10">
-        <h2 className="text-2xl md:text-3xl font-medium text-white mb-6 leading-relaxed tracking-wide">
+        {/* Answer text — reduced from text-2xl/3xl to text-lg/xl */}
+        <p className="text-lg md:text-xl font-normal text-gray-100 leading-relaxed tracking-normal">
           {data.answer_text}
-        </h2>
-        
+        </p>
+
+        {/* Chart — dark themed */}
         {data.chart && data.chart.image_base64 && (
-          <div className="mt-8 rounded-2xl overflow-hidden border border-white/10 bg-black/40 backdrop-blur-md shadow-xl flex justify-center p-6 hover:border-white/20 transition-colors">
-            <img 
-              src={`data:image/png;base64,${data.chart.image_base64}`} 
-              alt={data.chart.title || "Generated Chart"}
+          <div className="mt-6 rounded-xl overflow-hidden border border-white/8 bg-[#0d1117] shadow-xl flex justify-center p-5 hover:border-white/15 transition-colors">
+            <img
+              src={`data:image/png;base64,${data.chart.image_base64}`}
+              alt={data.chart.title || 'Generated Chart'}
               className="max-w-full h-auto rounded-lg object-contain"
+              style={{ filter: 'invert(0) hue-rotate(0deg) brightness(0.95)' }}
             />
           </div>
         )}
-        
+
+        {/* Date interpretation badge */}
         {data.date_interpretation && (
-          <div className="inline-flex items-center mt-6 px-4 py-2 rounded-full border border-dg-accent/30 bg-dg-accent/10 text-blue-300 text-sm font-semibold tracking-wider backdrop-blur-md shadow-[0_0_15px_rgba(59,130,246,0.15)]">
-            <span className="opacity-70 mr-2 uppercase text-xs">Dates interpreted:</span> 
+          <div className="inline-flex items-center gap-2 mt-5 px-3 py-1.5 rounded-full border border-dg-accent/25 bg-dg-accent/8 text-blue-300 text-xs font-medium tracking-wide">
+            <span className="opacity-60 uppercase text-[10px]">Dates:</span>
             {data.date_interpretation}
           </div>
         )}
