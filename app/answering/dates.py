@@ -1,16 +1,33 @@
 """
-dates.py – Deterministic date resolution.
+dates.py – Deterministic date resolution (Phase 3 / Step 1).
 
-Converts natural-language temporal references into concrete Oracle
-date literals BEFORE the SQL is generated. This prevents the LLM
-from guessing what "last month" or "as of today" means.
+Converts natural-language temporal references into explicit Oracle date
+ranges or literals BEFORE the LLM generates SQL.  This prevents the LLM
+from guessing what "last month" means and makes the generated SQL auditable.
 
-Examples:
-  "last month"         → {period: "2026-09", start: "2026-09-01", end: "2026-09-30"}
-  "July and August"    → {periods: ["2026-07", "2026-08"], ...}
-  "as of 28 Aug 2026"  → {as_of: "2026-08-28"}
-  "current"            → {as_of: "<today>"}
-  "Q3 2026"            → {start: "2026-07-01", end: "2026-09-30"}
+Design principles
+──────────────────
+• No LLM – pure Python + regex + dateutil.
+• Half-open ranges: ``col >= start AND col < exclusive_end`` avoids
+  double-counting at period boundaries (e.g. midnight on the last day).
+• All Oracle date literals follow the canonical ``DATE 'YYYY-MM-DD'`` form.
+• A ``DateContext`` Pydantic model is the typed output passed downstream.
+
+Supported phrases (case-insensitive)
+──────────────────────────────────────
+  "today" / "current" / "now"
+  "yesterday"
+  "last N days" / "last N weeks"
+  "last month" / "this month"
+  "last year"  / "this year" / "year to date" / "ytd"
+  "Q1"–"Q4" [YYYY]
+  Named months ("January", "Feb", "August 2025", …)
+  "as of <day> <month> <year>"
+  ISO dates "2026-08-28"
+
+Public API
+──────────
+    resolve_dates(question, date_context) -> DateContext
 """
 
 from __future__ import annotations
@@ -21,22 +38,55 @@ from typing import Any
 
 from dateutil.relativedelta import relativedelta
 from loguru import logger
+from pydantic import BaseModel, Field
 
 
-# ─── Reference Date ───────────────────────────────────────────────────────────
+# ─── Pydantic Models ──────────────────────────────────────────────────────────
 
-def _today(date_context: str | None = None) -> date:
-    """Return today or parse explicit context like 'today is 2026-08-28'."""
-    if date_context:
-        m = re.search(r"(\d{4}-\d{2}-\d{2})", date_context)
-        if m:
-            return date.fromisoformat(m.group(1))
-    return date.today()
+class DatePeriod(BaseModel):
+    """A resolved calendar period (half-open range)."""
+    label: str
+    start_date: str          # ISO-8601 e.g. "2026-09-01"
+    end_date: str            # ISO-8601 (inclusive last day, for human display)
+    # Oracle half-open range: col >= start AND col < exclusive_end
+    start_sql: str           # DATE '2026-09-01'
+    exclusive_end_sql: str   # DATE '2026-10-01'  ← one day past end
+    # Inclusive range variant kept for backwards compat
+    end_sql: str             # DATE '2026-09-30'
 
 
-# ─── Pattern Matchers ─────────────────────────────────────────────────────────
+class DateContext(BaseModel):
+    """Fully resolved date context passed to planner.py."""
+    reference_date: str = Field(..., description="ISO date of 'today' used for resolution")
+    periods: list[DatePeriod] = Field(default_factory=list)
+    as_of: str | None = Field(None, description="Oracle DATE literal for point-in-time queries")
+    interpretation: str = Field("no date filter detected")
 
-_MONTH_NAMES = {
+    def has_dates(self) -> bool:
+        return bool(self.periods or self.as_of)
+
+    def to_sql_hint(self) -> str:
+        """
+        Return a concise SQL hint string the planner injects into the prompt.
+
+        Uses half-open ranges to prevent double-counting:
+            col >= DATE 'YYYY-MM-DD' AND col < DATE 'YYYY-MM-DD'
+        """
+        lines: list[str] = [f"-- Reference date: {self.reference_date}"]
+        if self.as_of:
+            lines.append(f"-- Point-in-time filter: col <= {self.as_of}")
+        for p in self.periods:
+            lines.append(
+                f"-- Period '{p.label}': "
+                f"col >= {p.start_sql} AND col < {p.exclusive_end_sql}"
+            )
+        lines.append(f"-- Interpretation: {self.interpretation}")
+        return "\n".join(lines)
+
+
+# ─── Internal Constants ───────────────────────────────────────────────────────
+
+_MONTH_NAMES: dict[str, int] = {
     "jan": 1, "january": 1,
     "feb": 2, "february": 2,
     "mar": 3, "march": 3,
@@ -51,128 +101,215 @@ _MONTH_NAMES = {
     "dec": 12, "december": 12,
 }
 
-_QUARTER_MAP = {1: (1, 3), 2: (4, 6), 3: (7, 9), 4: (10, 12)}
+_QUARTER_MONTH_RANGE: dict[int, tuple[int, int]] = {
+    1: (1, 3), 2: (4, 6), 3: (7, 9), 4: (10, 12)
+}
 
 
-def _month_range(year: int, month: int) -> tuple[date, date]:
-    start = date(year, month, 1)
-    end = start + relativedelta(months=1) - timedelta(days=1)
-    return start, end
-
-
-def _quarter_range(year: int, q: int) -> tuple[date, date]:
-    start_month, end_month = _QUARTER_MAP[q]
-    start = date(year, start_month, 1)
-    end = date(year, end_month, 1) + relativedelta(months=1) - timedelta(days=1)
-    return start, end
-
+# ─── Date Arithmetic Helpers ──────────────────────────────────────────────────
 
 def _oracle_date(d: date) -> str:
     return f"DATE '{d.isoformat()}'"
 
 
-# ─── Resolution Logic ─────────────────────────────────────────────────────────
-
-def resolve_dates(question: str, *, date_context: str | None = None) -> dict[str, Any]:
+def _make_period(label: str, start: date, end_inclusive: date) -> DatePeriod:
     """
-    Parse the question for temporal references and return a dict of resolved dates.
+    Build a DatePeriod with a half-open exclusive end for Oracle SQL.
 
-    Returns a context dict that is passed downstream to the SQL planner so it
-    can substitute concrete dates. Keys present depend on what was detected:
-      - periods: list of {label, start_sql, end_sql, start_date, end_date}
-      - as_of: str  (Oracle DATE literal for point-in-time queries)
-      - reference_date: str (today's date as ISO string)
-      - interpretation: str (human description for the answer)
+    Exclusive end = end_inclusive + 1 day, so:
+        col >= start AND col < exclusive_end
+    correctly captures every timestamp on end_inclusive day.
     """
-    today = _today(date_context)
-    q_lower = question.lower()
-    result: dict[str, Any] = {
-        "reference_date": today.isoformat(),
-        "periods": [],
-        "as_of": None,
-        "interpretation": "",
-    }
+    exclusive_end = end_inclusive + timedelta(days=1)
+    return DatePeriod(
+        label=label,
+        start_date=start.isoformat(),
+        end_date=end_inclusive.isoformat(),
+        start_sql=_oracle_date(start),
+        exclusive_end_sql=_oracle_date(exclusive_end),
+        end_sql=_oracle_date(end_inclusive),
+    )
+
+
+def _month_range(year: int, month: int) -> tuple[date, date]:
+    start = date(year, month, 1)
+    end = (start + relativedelta(months=1)) - timedelta(days=1)
+    return start, end
+
+
+def _quarter_range(year: int, q: int) -> tuple[date, date]:
+    start_month, end_month = _QUARTER_MONTH_RANGE[q]
+    start = date(year, start_month, 1)
+    end = date(year, end_month, 1) + relativedelta(months=1) - timedelta(days=1)
+    return start, end
+
+
+def _parse_reference_date(date_context: str | None) -> date:
+    """Return today or parse 'today is YYYY-MM-DD' from an explicit context string."""
+    if date_context:
+        m = re.search(r"(\d{4}-\d{2}-\d{2})", date_context)
+        if m:
+            return date.fromisoformat(m.group(1))
+    return date.today()
+
+
+# ─── Public API ───────────────────────────────────────────────────────────────
+
+def resolve_dates(
+    question: str,
+    *,
+    date_context: str | None = None,
+) -> DateContext:
+    """
+    Parse ``question`` for temporal references and return a ``DateContext``.
+
+    Args:
+        question:     The raw user question string.
+        date_context: Optional override string like "today is 2026-08-28".
+
+    Returns:
+        DateContext – typed, with half-open Oracle SQL date ranges.
+    """
+    today = _parse_reference_date(date_context)
+    q = question.lower()
+
+    periods: list[DatePeriod] = []
+    as_of: str | None = None
     interpretations: list[str] = []
 
-    # ── "as of <date>" ────────────────────────────────────────────────────────
-    as_of_match = re.search(
-        r"as\s+of\s+(\d{1,2})\s+(\w+)\s+(\d{4})", q_lower
-    )
-    if as_of_match:
-        day = int(as_of_match.group(1))
-        mon_str = as_of_match.group(2)
-        year = int(as_of_match.group(3))
+    # ── Deduplicate helper ────────────────────────────────────────────────────
+    seen_labels: set[str] = set()
+
+    def _add_period(p: DatePeriod) -> None:
+        if p.label not in seen_labels:
+            seen_labels.add(p.label)
+            periods.append(p)
+
+    # ── 1. "as of <day> <month> <year>" ──────────────────────────────────────
+    as_of_m = re.search(r"as\s+of\s+(\d{1,2})\s+(\w+)\s+(\d{4})", q)
+    if as_of_m:
+        day, mon_str, year_str = as_of_m.group(1), as_of_m.group(2), as_of_m.group(3)
         mon = _MONTH_NAMES.get(mon_str)
         if mon:
-            as_of = date(year, mon, day)
-            result["as_of"] = _oracle_date(as_of)
-            interpretations.append(f"as of {as_of.isoformat()}")
+            d = date(int(year_str), mon, int(day))
+            as_of = _oracle_date(d)
+            interpretations.append(f"as of {d.isoformat()}")
 
-    # ── Explicit ISO date ─────────────────────────────────────────────────────
-    iso_dates = re.findall(r"\b(\d{4}-\d{2}-\d{2})\b", question)
-    if iso_dates and not result["as_of"]:
-        result["as_of"] = _oracle_date(date.fromisoformat(iso_dates[0]))
-        interpretations.append(f"as of {iso_dates[0]}")
+    # ── 2. ISO date literal "2026-08-28" ─────────────────────────────────────
+    if not as_of:
+        iso_dates = re.findall(r"\b(\d{4}-\d{2}-\d{2})\b", question)
+        if iso_dates:
+            d = date.fromisoformat(iso_dates[0])
+            as_of = _oracle_date(d)
+            interpretations.append(f"as of {d.isoformat()}")
 
-    # ── "last month" ──────────────────────────────────────────────────────────
-    if "last month" in q_lower:
+    # ── 3. "today" / "current" / "now" ───────────────────────────────────────
+    if re.search(r"\b(today|current|now)\b", q):
+        as_of = as_of or _oracle_date(today)
+        interpretations.append(f"current / today = {today.isoformat()}")
+
+    # ── 4. "yesterday" ───────────────────────────────────────────────────────
+    if "yesterday" in q:
+        yesterday = today - timedelta(days=1)
+        p = _make_period("yesterday", yesterday, yesterday)
+        _add_period(p)
+        interpretations.append(f"yesterday = {yesterday.isoformat()}")
+
+    # ── 5. "last N days" ─────────────────────────────────────────────────────
+    m_days = re.search(r"last\s+(\d+)\s+days?", q)
+    if m_days:
+        n = int(m_days.group(1))
+        start = today - timedelta(days=n)
+        p = _make_period(f"last {n} days", start, today - timedelta(days=1))
+        _add_period(p)
+        interpretations.append(f"last {n} days = {start.isoformat()} to {(today - timedelta(days=1)).isoformat()}")
+
+    # ── 6. "last N weeks" ────────────────────────────────────────────────────
+    m_weeks = re.search(r"last\s+(\d+)\s+weeks?", q)
+    if m_weeks:
+        n = int(m_weeks.group(1))
+        start = today - timedelta(weeks=n)
+        p = _make_period(f"last {n} weeks", start, today - timedelta(days=1))
+        _add_period(p)
+        interpretations.append(
+            f"last {n} weeks = {start.isoformat()} to {(today - timedelta(days=1)).isoformat()}"
+        )
+
+    # ── 7. "last month" ──────────────────────────────────────────────────────
+    if "last month" in q:
         ref = today - relativedelta(months=1)
         s, e = _month_range(ref.year, ref.month)
-        result["periods"].append(_make_period(f"{ref.year}-{ref.month:02d}", s, e))
+        p = _make_period(f"{ref.year}-{ref.month:02d}", s, e)
+        _add_period(p)
         interpretations.append(f"last month = {s.strftime('%B %Y')}")
 
-    # ── "this month" ─────────────────────────────────────────────────────────
-    if "this month" in q_lower:
+    # ── 8. "this month" ──────────────────────────────────────────────────────
+    if "this month" in q:
         s, e = _month_range(today.year, today.month)
-        result["periods"].append(_make_period(f"{today.year}-{today.month:02d}", s, e))
+        p = _make_period(f"{today.year}-{today.month:02d}", s, e)
+        _add_period(p)
         interpretations.append(f"this month = {s.strftime('%B %Y')}")
 
-    # ── "last year" / "this year" ─────────────────────────────────────────────
-    if "last year" in q_lower:
+    # ── 9. "last year" ───────────────────────────────────────────────────────
+    if "last year" in q:
         y = today.year - 1
-        s, e = date(y, 1, 1), date(y, 12, 31)
-        result["periods"].append(_make_period(str(y), s, e))
+        p = _make_period(str(y), date(y, 1, 1), date(y, 12, 31))
+        _add_period(p)
         interpretations.append(f"last year = {y}")
 
-    # ── Named months (July, August…) ──────────────────────────────────────────
-    for mon_name, mon_num in _MONTH_NAMES.items():
-        pattern = rf"\b{mon_name}\b"
-        for match in re.finditer(pattern, q_lower):
-            # Extract optional year after month name
-            ctx = q_lower[match.start():match.start() + 20]
-            yr_match = re.search(r"(\d{4})", ctx)
-            year = int(yr_match.group(1)) if yr_match else today.year
-            s, e = _month_range(year, mon_num)
-            label = f"{year}-{mon_num:02d}"
-            # Avoid duplicates
-            if not any(p["label"] == label for p in result["periods"]):
-                result["periods"].append(_make_period(label, s, e))
-                interpretations.append(f"{mon_name.title()} → {s.isoformat()} to {e.isoformat()}")
+    # ── 10. "this year" ──────────────────────────────────────────────────────
+    if "this year" in q:
+        s = date(today.year, 1, 1)
+        p = _make_period(str(today.year), s, date(today.year, 12, 31))
+        _add_period(p)
+        interpretations.append(f"this year = {today.year}")
 
-    # ── Quarters ──────────────────────────────────────────────────────────────
-    for q_match in re.finditer(r"q([1-4])\s*(\d{4})?", q_lower):
-        qnum = int(q_match.group(1))
-        yr_str = q_match.group(2)
-        year = int(yr_str) if yr_str else today.year
-        s, e = _quarter_range(year, qnum)
-        label = f"Q{qnum} {year}"
-        if not any(p["label"] == label for p in result["periods"]):
-            result["periods"].append(_make_period(label, s, e))
-            interpretations.append(f"Q{qnum} {year} = {s.isoformat()} to {e.isoformat()}")
+    # ── 11. "year to date" / "ytd" ───────────────────────────────────────────
+    if re.search(r"\b(year.?to.?date|ytd)\b", q):
+        s = date(today.year, 1, 1)
+        p = _make_period(f"YTD {today.year}", s, today)
+        _add_period(p)
+        interpretations.append(f"year to date = {s.isoformat()} to {today.isoformat()}")
 
-    result["interpretation"] = "; ".join(interpretations) if interpretations else "no date filter detected"
+    # ── 12. Named months ─────────────────────────────────────────────────────
+    # Sort by length descending so "september" is matched before "sep"
+    for mon_name in sorted(_MONTH_NAMES.keys(), key=len, reverse=True):
+        if not re.search(rf"\b{mon_name}\b", q):
+            continue
+        # Extract optional year immediately after the month name
+        ctx_match = re.search(
+            rf"\b{mon_name}\b\s*(\d{{4}})?", q
+        )
+        yr = int(ctx_match.group(1)) if ctx_match and ctx_match.group(1) else today.year
+        mon_num = _MONTH_NAMES[mon_name]
+        label = f"{yr}-{mon_num:02d}"
+        s, e = _month_range(yr, mon_num)
+        p = _make_period(label, s, e)
+        _add_period(p)
+        interpretations.append(
+            f"{mon_name.title()} → {s.isoformat()} to {e.isoformat()}"
+        )
 
-    if result["periods"] or result["as_of"]:
-        logger.debug(f"Date resolution: {result['interpretation']}")
+    # ── 13. Quarters "Q1", "q3 2026" ─────────────────────────────────────────
+    for qm in re.finditer(r"\bq([1-4])\s*(\d{4})?\b", q):
+        qnum = int(qm.group(1))
+        yr = int(qm.group(2)) if qm.group(2) else today.year
+        s, e = _quarter_range(yr, qnum)
+        label = f"Q{qnum} {yr}"
+        p = _make_period(label, s, e)
+        _add_period(p)
+        interpretations.append(f"Q{qnum} {yr} = {s.isoformat()} to {e.isoformat()}")
 
-    return result
+    interp_str = "; ".join(interpretations) if interpretations else "no date filter detected"
 
+    ctx = DateContext(
+        reference_date=today.isoformat(),
+        periods=periods,
+        as_of=as_of,
+        interpretation=interp_str,
+    )
 
-def _make_period(label: str, start: date, end: date) -> dict[str, Any]:
-    return {
-        "label": label,
-        "start_date": start.isoformat(),
-        "end_date": end.isoformat(),
-        "start_sql": _oracle_date(start),
-        "end_sql": _oracle_date(end),
-    }
+    if ctx.has_dates():
+        logger.debug("Date resolution: {}", interp_str)
+
+    return ctx

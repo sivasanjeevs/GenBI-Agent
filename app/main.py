@@ -181,20 +181,18 @@ def ask(req: AskRequest) -> AskResponse:
 
     try:
         date_ctx = resolve_dates(req.question, date_context=req.date_context)
-        semantics = retrieve_relevant_semantics(req.question)
-        plan = plan_and_generate_sql(
+        retrieval = retrieve_relevant_semantics(req.question)
+        state = plan_and_generate_sql(
             question=req.question,
-            semantics=semantics,
-            date_context=date_ctx,
+            retrieval=retrieval,
+            date_ctx=date_ctx,
             conversation_id=req.conversation_id,
         )
-        result = execute_with_repair(plan)
+        state = execute_with_repair(state)
         response = compose_answer(
-            question=req.question,
-            plan=plan,
-            result=result,
-            date_context=date_ctx,
+            state=state,
             question_id=question_id,
+            conversation_id=req.conversation_id,
         )
         return AskResponse(**response)
 

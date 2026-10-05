@@ -1,14 +1,26 @@
 """
-planner.py – Question → Plan → SQL generation.
+planner.py – Step-by-step reasoning and SQL generation (Phase 3 / Step 3).
 
-Takes the question, resolved date context, and retrieved semantic tables,
-and produces an execution plan + Oracle SQL.
+Forces the LLM to think before generating code via two structured calls:
 
-Two-step prompting:
-  Step 1 (PLAN): LLM reasons about which tables/columns/filters to use
-  Step 2 (SQL):  LLM writes the actual Oracle SQL using the plan
+Call 1 → QueryPlan (Pydantic)
+    answerable, tables, joins, filters, grain, scd_handling,
+    counting_strategy, reasoning
 
-The plan is returned alongside the SQL so we can show reasoning.
+Call 2 → SqlOutput (Pydantic)
+    sql (the actual Oracle SELECT statement)
+
+Both calls use call_llm_structured with response_schema so the output is
+guaranteed to be valid JSON conforming to the declared schema.
+
+The final output is an AnsweringState Pydantic model that carries the
+question, plan, SQL, and date context through the rest of the pipeline.
+
+Public API
+──────────
+    plan_and_generate_sql(
+        question, retrieval, date_ctx, conversation_id
+    ) -> AnsweringState
 """
 
 from __future__ import annotations
@@ -17,117 +29,184 @@ import json
 from typing import Any
 
 from loguru import logger
+from pydantic import BaseModel, Field
 
-from app.answering.guard import clean_sql
-from app.llm import call_llm, extract_json
+from app.answering.dates import DateContext
+from app.answering.guard import clean_sql, validate_select_only
+from app.answering.retrieve import RetrievalResult
+from app.llm import call_llm_structured
+
+
+# ─── Shared State Model ───────────────────────────────────────────────────────
+
+class QueryPlan(BaseModel):
+    """Step-by-step reasoning output from the planning LLM call."""
+    answerable: bool = Field(..., description="Can this question be answered from the available data?")
+    unanswerable_reason: str | None = Field(
+        None,
+        description="If answerable=false, explain why.",
+    )
+    tables: list[str] = Field(
+        default_factory=list,
+        description="SCHEMA.TABLE names required, in join order.",
+    )
+    joins: list[str] = Field(
+        default_factory=list,
+        description="Each join as 'A.col = B.col' with context.",
+    )
+    filters: list[str] = Field(
+        default_factory=list,
+        description="WHERE-clause conditions to apply (English, not SQL).",
+    )
+    grain: str = Field(
+        "",
+        description="What each row in the result represents.",
+    )
+    scd_handling: str | None = Field(
+        None,
+        description="How to filter SCD Type-2 tables for current records.",
+    )
+    counting_strategy: str = Field(
+        "",
+        description="How to COUNT correctly (DISTINCT, etc.).",
+    )
+    reasoning: str = Field(
+        "",
+        description="2-4 sentence plain-English reasoning trace.",
+    )
+
+
+class SqlOutput(BaseModel):
+    """SQL generation output from the second LLM call."""
+    sql: str = Field(
+        ...,
+        description=(
+            "A single, complete Oracle 23ai SELECT statement. "
+            "No markdown fences. No trailing semicolons."
+        ),
+    )
+    comment: str = Field(
+        "",
+        description="One-line description of what the query computes.",
+    )
+
+
+class AnsweringState(BaseModel):
+    """Shared state object threaded through the entire answering pipeline."""
+    question: str
+    plan: QueryPlan
+    sql: str                           # cleaned, guard-validated SQL
+    table_names: list[str]
+    date_context: DateContext
+    # Populated by executor.py:
+    result: dict[str, Any] = Field(default_factory=dict)
+    attempts: int = 0
+    repaired: bool = False
+    abstained: bool = False
+    abstain_reason: str = ""
 
 
 # ─── Prompt Templates ─────────────────────────────────────────────────────────
 
 _PLAN_PROMPT = """You are a senior Oracle SQL expert with deep knowledge of telecom databases.
+Think step-by-step before answering.
 
-The user asked: "{question}"
+USER QUESTION: "{question}"
 
-Date context resolved: {date_context}
+DATE CONTEXT (use these exact Oracle literals – do NOT compute dates yourself):
+{date_sql_hint}
 
-Relevant tables in the semantic layer:
+AVAILABLE TABLES IN THE SEMANTIC LAYER:
 {table_context}
 
 {conversation_context}
 
-TASK: Write a concise PLAN (not SQL yet) explaining:
-1. Which tables you need and why
-2. Which joins to use (and the join keys)
-3. Which WHERE filters to apply (including how to filter for "active", "current", etc.)
-4. How to handle SCD Type 2 tables (which column to use for current records)
-5. What to COUNT / SUM / GROUP BY
-6. Any potential double-counting risks and how to avoid them
-7. Whether this question can be answered at all from the available data
+YOUR TASK (PLAN ONLY – no SQL yet):
+1. Identify which tables are required and WHY.
+2. Specify exact JOIN keys.
+3. Determine WHERE filters (including SCD current-record filter if needed).
+4. State what the grain of the result should be.
+5. Note any double-counting risk and how to avoid it.
+6. State whether the question can be answered.
 
-If the question CANNOT be answered (missing data, ambiguous beyond resolution),
-state "UNANSWERABLE: <reason>" and stop.
-
-Respond with a JSON object:
-{{
-  "can_answer": true/false,
-  "unanswerable_reason": "<reason if can_answer=false, else null>",
-  "tables_needed": ["SCHEMA.TABLE", ...],
-  "joins": ["<join description>"],
-  "filters": ["<filter description>"],
-  "aggregations": ["<agg description>"],
-  "scd_handling": "<description or null>",
-  "counting_strategy": "<description>",
-  "plan_summary": "<2-3 sentence plain English plan>"
-}}
+If the question CANNOT be answered with the available tables/columns, set
+answerable=false and explain in unanswerable_reason.
 """
 
-_SQL_PROMPT = """You are a senior Oracle SQL expert. Write an Oracle 23ai SELECT query.
+_SQL_PROMPT = """You are a senior Oracle 23ai SQL expert.
+You have already produced a query plan. Now write the final SQL.
 
-User question: "{question}"
+USER QUESTION: "{question}"
 
-Execution plan:
+APPROVED PLAN:
 {plan_json}
 
-Semantic layer for relevant tables:
+DATE LITERALS (copy-paste exactly – never compute dates yourself):
+{date_sql_hint}
+
+SEMANTIC LAYER CONTEXT:
 {table_context}
 
-Date literals to use (do NOT compute dates yourself, use these exactly):
-{date_literals}
+ORACLE SQL RULES:
+1. Always qualify every column with a table alias (e.g. s.status).
+2. Use DATE 'YYYY-MM-DD' for date literals.
+3. Use half-open date ranges: col >= DATE '...' AND col < DATE '...' (prevents double-counting).
+4. For SCD Type-2 tables apply the scd_handling filter from the plan.
+5. Use COUNT(DISTINCT <key>) when counting unique entities.
+6. Never invent columns or tables not present in the semantic layer.
+7. Use NVL(), TRUNC(), DECODE() – not IFNULL, FLOOR, IF().
+8. Return a single SELECT statement. No trailing semicolon.
+9. Start the query with a comment: -- Answers: <one-line summary>
 
-Rules:
-1. Use Oracle SQL syntax (DATE 'YYYY-MM-DD', TRUNC(), NVL(), etc.)
-2. Always qualify column names with table alias
-3. For SCD Type 2 tables, use the scd_handling from the plan to filter current records
-4. Use COUNT(DISTINCT ...) when counting unique entities
-5. Never invent columns or tables not in the semantic layer
-6. Add a comment at the top: -- Answers: <question summary>
-7. Return ONLY the SQL, wrapped in ```sql ... ```
-
-SQL:
+Write ONLY the SQL. No markdown. No explanation.
 """
 
 
 # ─── Context Builders ─────────────────────────────────────────────────────────
 
-def _build_table_context(semantics: dict[str, Any]) -> str:
-    lines = []
-    for t in semantics["tables"]:
-        sem = t.get("semantics", {})
-        lines.append(f"\n### {t['full_name']}")
-        lines.append(f"Entity: {sem.get('business_entity', '?')}")
+def _build_table_context(retrieval: RetrievalResult) -> str:
+    """Flatten retrieved semantic layer tables into a dense prompt string."""
+    lines: list[str] = []
+    for t in retrieval.tables:
+        sem: dict[str, Any] = t.get("semantics", {})
+        bm25 = retrieval.bm25_scores.get(t["full_name"], 0.0)
+        lines.append(f"\n### {t['full_name']}  (BM25={bm25:.2f})")
+        lines.append(f"Entity    : {sem.get('business_entity', '?')}")
         lines.append(f"Description: {sem.get('table_description', '?')}")
-        lines.append(f"Grain: {sem.get('grain', '?')}")
+        lines.append(f"Grain     : {sem.get('grain', '?')}")
         if sem.get("scd_note"):
-            lines.append(f"SCD Note: {sem['scd_note']}")
-        if sem.get("counting_warnings"):
-            lines.append(f"Counting warnings: {'; '.join(sem['counting_warnings'])}")
+            lines.append(f"SCD Note  : {sem['scd_note']}")
+        for w in sem.get("counting_warnings", []):
+            lines.append(f"⚠ Counting: {w}")
 
-        # Columns
-        lines.append("Columns:")
+        # Columns (name, type, description, value_map)
+        cols_block: list[str] = []
         for col_name, col_info in sem.get("columns", {}).items():
             vm = col_info.get("value_map", {})
-            vm_str = f" [values: {vm}]" if vm else ""
-            lines.append(
-                f"  - {col_name} ({col_info.get('semantic_type', '?')}): "
+            vm_str = f"  values={json.dumps(vm)}" if vm else ""
+            cols_block.append(
+                f"  {col_name} ({col_info.get('semantic_type','?')}): "
                 f"{col_info.get('description', '')}{vm_str}"
             )
+        if cols_block:
+            lines.append("Columns:\n" + "\n".join(cols_block))
 
-        # Joins
+        # Verified concepts
+        high_concepts = [
+            v for v in t.get("verified_concepts", []) if v.get("confidence") == "high"
+        ]
+        if high_concepts:
+            lines.append("Verified business concepts:")
+            for vc in high_concepts[:5]:
+                lines.append(
+                    f"  '{vc['term']}' → WHERE {vc['filter_sql']}  "
+                    f"(count={vc.get('count', '?')})"
+                )
+
+        # Suggested joins
         for join in sem.get("suggested_joins", []):
             lines.append(f"Join: {join.get('on')} → {join.get('description', '')}")
 
-    return "\n".join(lines)
-
-
-def _build_date_literals(date_context: dict[str, Any]) -> str:
-    lines = [f"Reference date: {date_context.get('reference_date', 'unknown')}"]
-    if date_context.get("as_of"):
-        lines.append(f"Point-in-time (AS OF): {date_context['as_of']}")
-    for p in date_context.get("periods", []):
-        lines.append(
-            f"Period '{p['label']}': {p['start_sql']} to {p['end_sql']}"
-        )
-    lines.append(f"Interpretation: {date_context.get('interpretation', '')}")
     return "\n".join(lines)
 
 
@@ -138,10 +217,10 @@ def _build_conversation_context(conversation_id: str | None) -> str:
     history = get_conversation_history(conversation_id)
     if not history:
         return ""
-    lines = ["Previous conversation turns:"]
-    for turn in history[-3:]:  # last 3 turns
+    lines = ["PREVIOUS CONVERSATION TURNS (for follow-up context):"]
+    for turn in history[-3:]:
         lines.append(f"  Q: {turn['question']}")
-        lines.append(f"  SQL used: {turn.get('sql', '')[:200]}")
+        lines.append(f"  SQL: {turn.get('sql', '')[:200]}")
     return "\n".join(lines)
 
 
@@ -149,64 +228,75 @@ def _build_conversation_context(conversation_id: str | None) -> str:
 
 def plan_and_generate_sql(
     question: str,
-    semantics: dict[str, Any],
-    date_context: dict[str, Any],
+    retrieval: RetrievalResult,
+    date_ctx: DateContext,
     conversation_id: str | None = None,
-) -> dict[str, Any]:
+) -> AnsweringState:
     """
-    Two-step: plan then SQL generation.
+    Two-step structured LLM pipeline: plan then SQL.
+
+    Step 1: call_llm_structured → QueryPlan (reasoning trace).
+    Step 2: call_llm_structured → SqlOutput (Oracle SELECT).
+    The SQL is then validated by the security guard before being returned.
+
+    Args:
+        question:        Raw user question.
+        retrieval:       Output of retrieve_relevant_semantics().
+        date_ctx:        Output of resolve_dates().
+        conversation_id: Optional conversation ID for multi-turn context.
 
     Returns:
-        {
-            "question": str,
-            "plan": dict,           # structured plan from LLM
-            "sql": str,             # final Oracle SQL
-            "table_names": list,
-            "date_context": dict,
-        }
+        AnsweringState – ready for executor.py.
 
     Raises:
-        ValueError: if the question is determined unanswerable.
+        ValueError: If the plan determines the question is unanswerable.
     """
-    table_context = _build_table_context(semantics)
-    date_literals = _build_date_literals(date_context)
+    table_context = _build_table_context(retrieval)
+    date_sql_hint = date_ctx.to_sql_hint()
     conversation_context = _build_conversation_context(conversation_id)
 
     # ── Step 1: Plan ──────────────────────────────────────────────────────────
     plan_prompt = _PLAN_PROMPT.format(
         question=question,
-        date_context=json.dumps(date_context, indent=2),
+        date_sql_hint=date_sql_hint,
         table_context=table_context,
         conversation_context=conversation_context,
     )
 
-    logger.info(f"Planning query for: {question[:80]}…")
-    plan_response = call_llm(plan_prompt)
-    plan = extract_json(plan_response)
+    logger.info("Planning query for: {}…", question[:80])
+    plan: QueryPlan = call_llm_structured(plan_prompt, QueryPlan)
 
-    if not plan.get("can_answer", True):
+    if not plan.answerable:
         raise ValueError(
-            plan.get("unanswerable_reason", "Question cannot be answered from available data.")
+            plan.unanswerable_reason
+            or "Question cannot be answered from available data."
         )
+
+    logger.debug("Plan: tables={} filters={}", plan.tables, plan.filters)
 
     # ── Step 2: SQL Generation ────────────────────────────────────────────────
     sql_prompt = _SQL_PROMPT.format(
         question=question,
-        plan_json=json.dumps(plan, indent=2),
+        plan_json=plan.model_dump_json(indent=2),
+        date_sql_hint=date_sql_hint,
         table_context=table_context,
-        date_literals=date_literals,
     )
 
     logger.info("Generating SQL…")
-    sql_response = call_llm(sql_prompt, bypass_cache=True)  # always fresh SQL
-    sql = clean_sql(sql_response)
+    sql_output: SqlOutput = call_llm_structured(
+        sql_prompt, SqlOutput, bypass_cache=True
+    )
 
-    logger.debug(f"Generated SQL:\n{sql}")
+    # ── Guard: strip fences, validate SELECT-only ─────────────────────────────
+    sql = clean_sql(sql_output.sql)
+    validate_select_only(sql)   # raises ValueError on non-SELECT
 
-    return {
-        "question": question,
-        "plan": plan,
-        "sql": sql,
-        "table_names": semantics["table_names"],
-        "date_context": date_context,
-    }
+    logger.debug("Generated SQL:\n{}", sql)
+
+    return AnsweringState(
+        question=question,
+        plan=plan,
+        sql=sql,
+        table_names=retrieval.table_names,
+        date_context=date_ctx,
+    )

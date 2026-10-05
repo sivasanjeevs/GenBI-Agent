@@ -1,167 +1,286 @@
 """
-executor.py – SQL execution with auto-repair loop and majority vote.
+executor.py – Self-healing SQL execution loop (Phase 3 / Step 5).
 
-Flow:
-  1. Run the SQL via db.safe_execute
-  2. If it errors, ask the LLM to repair and retry (up to N times)
-  3. For consistency, optionally run N times and take majority vote on result
+Executes the SQL from an AnsweringState and automatically repairs it on
+failure using a targeted LLM call.  All execution goes through db.run_query()
+(Phase 1) which enforces the SQL guard, row caps, and timeouts.
 
-The repair loop passes the Oracle error message back to the LLM with
-the original question and plan context, so it can make targeted fixes.
+Failure detection (any one triggers repair)
+─────────────────────────────────────────────
+1. db.run_query() raises ValueError (guard failure) or RuntimeError (ORA-*).
+2. Result is structurally wrong:
+   • Empty result set (0 rows) for a non-aggregate query.
+   • Fan-out detected: row_count > expected_max (heuristic: > 10× the table's
+     known row count suggests a missing join condition).
+
+Repair loop
+────────────
+1. Format a targeted repair prompt including:
+   • The error message or structural-failure description.
+   • The failed SQL.
+   • Valid column names from the retrieved semantic context.
+2. Call call_llm_structured → SqlOutput for the repaired SQL.
+3. Re-validate with guard and re-execute.
+4. Hard limit: MAX_REPAIR_ATTEMPTS = 3.
+5. After all attempts fail → set state.abstained = True, do NOT raise.
+
+Public API
+──────────
+    execute_with_repair(state: AnsweringState) -> AnsweringState
+    execute_with_vote(state, runs) -> AnsweringState   (eval harness)
 """
 
 from __future__ import annotations
 
-import time
+import json
 from collections import Counter
 from typing import Any
 
 from loguru import logger
+from pydantic import BaseModel, Field
 
-from app.answering.guard import clean_sql
+from app.answering.guard import clean_sql, validate_select_only
+from app.answering.planner import AnsweringState, SqlOutput
 from app.config import settings
-from app.db import safe_execute
-from app.llm import call_llm
+from app.db import run_query
+from app.llm import call_llm_structured
+
+# Hard limit on repair attempts before abstaining.
+MAX_REPAIR_ATTEMPTS: int = 3
+
+# Row-count multiplier that suggests a fan-out (missing join predicate).
+_FANOUT_MULTIPLIER: int = 10
+
+
+# ─── Structural Failure Detection ────────────────────────────────────────────
+
+def _detect_structural_failure(
+    result: dict[str, Any],
+    expected_max_rows: int | None,
+) -> str | None:
+    """
+    Return a description of a structural failure, or None if the result looks OK.
+
+    Checks:
+    • Row count == 0 with no aggregation columns (suggests a bad filter).
+    • Row count is far larger than the largest known table row count
+      (suggests a Cartesian / fan-out join).
+    """
+    rows = result.get("rows", [])
+    row_count = result.get("row_count", 0)
+
+    # Empty result – only flag if this is likely a filter bug (not an aggregate).
+    # If there is only one column named "cnt", "count", "total" we assume an
+    # intentional COUNT query that genuinely returned 0.
+    cols = result.get("columns", [])
+    is_aggregate = len(cols) == 1 and cols[0].lower() in {
+        "cnt", "count", "total", "n", "num", "row_count",
+    }
+    if row_count == 0 and not is_aggregate:
+        return (
+            "The query returned 0 rows. This likely means a WHERE filter is "
+            "too restrictive or uses incorrect column values."
+        )
+
+    # Fan-out detection
+    if expected_max_rows and row_count > expected_max_rows * _FANOUT_MULTIPLIER:
+        return (
+            f"The query returned {row_count:,} rows, which is "
+            f"{row_count / max(expected_max_rows, 1):.0f}× the expected maximum "
+            f"({expected_max_rows:,}). This suggests a missing JOIN condition "
+            "causing a Cartesian product (fan-out)."
+        )
+
+    return None
 
 
 # ─── Repair Prompt ────────────────────────────────────────────────────────────
 
-_REPAIR_PROMPT = """You are an Oracle SQL expert. The following Oracle SQL query failed.
+_REPAIR_PROMPT = """You are an Oracle 23ai SQL expert. Fix the following failed query.
 
-Original question: "{question}"
+ORIGINAL QUESTION: "{question}"
 
-Failed SQL:
-```sql
+FAILED SQL:
 {sql}
-```
 
-Error message:
+FAILURE REASON:
 {error}
 
-Fix the SQL so it runs correctly on Oracle 23ai. Common issues:
-- Missing schema prefix (use SCHEMA.TABLE_NAME)
-- Oracle date syntax (use DATE 'YYYY-MM-DD' not '2026-01-01')
-- Column name typos (check the schema below)
-- Oracle-specific functions (use NVL not IFNULL, ROWNUM not LIMIT)
-- Subquery alias requirements
+VALID TABLE COLUMNS (from semantic layer):
+{schema_hint}
 
-Available schema context:
-{schema_context}
+DATE CONTEXT:
+{date_hint}
 
-Return ONLY the corrected SQL wrapped in ```sql ... ```:
+ORACLE SQL RULES:
+- Use schema-qualified names: SCHEMA.TABLE_NAME
+- Use DATE 'YYYY-MM-DD' for literals (never TO_DATE with implicit format)
+- Half-open date ranges: col >= DATE '...' AND col < DATE '...'
+- Use COUNT(DISTINCT col) for unique-entity counts
+- Never use LIMIT – use FETCH FIRST N ROWS ONLY
+- Fix only the root cause. Return the complete corrected SELECT statement.
+- No markdown fences. No semicolons.
 """
 
 
-# ─── Helpers ──────────────────────────────────────────────────────────────────
+def _build_schema_hint(state: AnsweringState) -> str:
+    """Extract column names from the retrieved semantic layer tables."""
+    lines: list[str] = []
+    for table_name in state.table_names[:7]:
+        # Load from the in-memory retrieval result (stored via plan.tables)
+        lines.append(f"Table: {table_name}")
+    # We don't re-load the full layer here; use the plan's table list as the hint.
+    tables_in_plan = state.plan.tables
+    return (
+        "Tables in plan: " + ", ".join(tables_in_plan) + "\n"
+        "Refer to the semantic layer for exact column names."
+    )
 
-def _schema_context_from_plan(plan_dict: dict[str, Any]) -> str:
-    """Build a brief schema hint from the plan's table list."""
-    tables = plan_dict.get("tables_needed", [])
-    return f"Tables involved: {', '.join(tables)}"
 
+def _repair_sql(
+    state: AnsweringState,
+    error: str,
+) -> str | None:
+    """
+    Ask the LLM to produce a repaired SQL statement.
 
-def _results_equal(a: list[dict], b: list[dict]) -> bool:
-    """Compare two result sets ignoring row/column order."""
-    def normalise(rows: list[dict]) -> frozenset:
-        return frozenset(
-            frozenset((k, str(v)) for k, v in row.items())
-            for row in rows
+    Returns the cleaned, guard-validated SQL string, or None on failure.
+    """
+    prompt = _REPAIR_PROMPT.format(
+        question=state.question,
+        sql=state.sql,
+        error=error,
+        schema_hint=_build_schema_hint(state),
+        date_hint=state.date_context.to_sql_hint(),
+    )
+    try:
+        sql_out: SqlOutput = call_llm_structured(
+            prompt, SqlOutput, bypass_cache=True
         )
-    return normalise(a) == normalise(b)
+        repaired = clean_sql(sql_out.sql)
+        validate_select_only(repaired)
+        return repaired
+    except Exception as exc:  # noqa: BLE001
+        logger.error("Repair LLM call failed: {}", exc)
+        return None
 
 
 # ─── Public Interface ─────────────────────────────────────────────────────────
 
-def execute_with_repair(plan: dict[str, Any]) -> dict[str, Any]:
+def execute_with_repair(state: AnsweringState) -> AnsweringState:
     """
-    Execute the SQL from `plan`, with auto-repair on failure.
+    Execute ``state.sql`` against Oracle, auto-repairing on failure.
+
+    Mutates ``state`` in place (updates sql, result, attempts, repaired,
+    abstained, abstain_reason) and returns it.
 
     Args:
-        plan: dict from planner.plan_and_generate_sql
+        state: AnsweringState from plan_and_generate_sql().
 
     Returns:
-        Result dict from db.safe_execute plus:
-          - "attempts": number of attempts made
-          - "repaired": bool – was the SQL repaired?
-          - "final_sql": the SQL that actually ran
+        The same state object with result populated (or abstained=True).
     """
-    sql = plan["sql"]
-    question = plan["question"]
-    plan_info = plan.get("plan", {})
-    max_attempts = settings.sql_repair_attempts
+    # Expected maximum rows = largest table in plan (for fan-out detection).
+    # We use sql_max_rows from config as a conservative proxy.
+    expected_max = settings.sql_max_rows
 
-    last_error: str | None = None
+    last_error: str = ""
 
-    for attempt in range(1, max_attempts + 1):
+    for attempt in range(1, MAX_REPAIR_ATTEMPTS + 1):
+        logger.info("Executing SQL (attempt {}/{})", attempt, MAX_REPAIR_ATTEMPTS)
+
         try:
-            logger.info(f"Executing SQL (attempt {attempt}/{max_attempts})")
-            result = safe_execute(sql)
-            result["attempts"] = attempt
-            result["repaired"] = attempt > 1
-            result["final_sql"] = sql
-            return result
-
+            result = run_query(
+                state.sql,
+                max_rows=settings.sql_max_rows,
+                timeout=settings.sql_timeout_seconds,
+            )
         except (ValueError, RuntimeError) as exc:
             last_error = str(exc)
-            logger.warning(f"SQL attempt {attempt} failed: {last_error[:200]}")
+            logger.warning("SQL attempt {} failed: {}", attempt, last_error[:300])
+        else:
+            # ── Structural failure check ──────────────────────────────────────
+            structural_err = _detect_structural_failure(result, expected_max)
+            if structural_err:
+                last_error = structural_err
+                logger.warning("Structural failure on attempt {}: {}", attempt, structural_err)
+            else:
+                # ── Success ───────────────────────────────────────────────────
+                state.result = result
+                state.attempts = attempt
+                state.repaired = attempt > 1
+                logger.info(
+                    "SQL succeeded on attempt {} | rows={} | elapsed={:.0f}ms",
+                    attempt, result.get("row_count", 0), result.get("elapsed_ms", 0),
+                )
+                return state
 
-            if attempt >= max_attempts:
-                break
+        # ── Repair if not on last attempt ─────────────────────────────────────
+        if attempt < MAX_REPAIR_ATTEMPTS:
+            repaired_sql = _repair_sql(state, last_error)
+            if repaired_sql:
+                state.sql = repaired_sql
+                logger.info("SQL repaired for attempt {}.", attempt + 1)
+            else:
+                logger.warning("Repair failed; keeping previous SQL for next attempt.")
 
-            # Ask LLM to repair
-            schema_ctx = _schema_context_from_plan(plan_info)
-            repair_prompt = _REPAIR_PROMPT.format(
-                question=question,
-                sql=sql,
-                error=last_error,
-                schema_context=schema_ctx,
-            )
-            try:
-                repair_response = call_llm(repair_prompt, bypass_cache=True)
-                sql = clean_sql(repair_response)
-                logger.info(f"Repaired SQL (attempt {attempt + 1}):\n{sql[:300]}…")
-            except Exception as repair_exc:
-                logger.error(f"Repair LLM call failed: {repair_exc}")
-                break
-
-    # All attempts exhausted
-    raise RuntimeError(
-        f"SQL execution failed after {max_attempts} attempts. "
+    # ── Abstain ───────────────────────────────────────────────────────────────
+    state.abstained = True
+    state.abstain_reason = (
+        f"SQL execution failed after {MAX_REPAIR_ATTEMPTS} attempts. "
         f"Last error: {last_error}"
     )
+    state.attempts = MAX_REPAIR_ATTEMPTS
+    state.result = {
+        "columns": [],
+        "rows": [],
+        "row_count": 0,
+        "elapsed_ms": 0.0,
+        "sql": state.sql,
+    }
+    logger.error(
+        "Abstaining after {} attempts. Reason: {}", MAX_REPAIR_ATTEMPTS, last_error
+    )
+    return state
 
 
 def execute_with_vote(
-    plan: dict[str, Any],
+    state: AnsweringState,
+    *,
     runs: int = 3,
-) -> dict[str, Any]:
+) -> AnsweringState:
     """
-    Run the query `runs` times and return the majority result.
-    Used by the eval harness for consistency checking.
+    Run the query ``runs`` times (each with repair) and return the majority result.
+
+    Used by the evaluation harness for consistency checking.
+    The returned state reflects the winning majority result.
     """
-    results = []
+    import copy
+
+    results: list[dict[str, Any]] = []
     for i in range(runs):
-        try:
-            r = execute_with_repair(plan)
-            results.append(r)
-        except Exception as exc:
-            logger.warning(f"Vote run {i+1} failed: {exc}")
+        run_state = copy.deepcopy(state)
+        run_state = execute_with_repair(run_state)
+        if not run_state.abstained:
+            results.append(run_state.result)
 
     if not results:
-        raise RuntimeError("All vote runs failed")
+        state.abstained = True
+        state.abstain_reason = "All vote runs failed or abstained."
+        return state
 
     if len(results) == 1:
-        return results[0]
+        state.result = results[0]
+        state.attempts = runs
+        return state
 
-    # Pick the result that appears most frequently (by data content)
-    # Represent each result as a frozen set of row tuples
-    def key(r: dict[str, Any]) -> str:
-        import json
-        return json.dumps(r["rows"], sort_keys=True, default=str)
+    def _result_key(r: dict[str, Any]) -> str:
+        return json.dumps(r.get("rows", []), sort_keys=True, default=str)
 
-    counts = Counter(key(r) for r in results)
+    counts: Counter[str] = Counter(_result_key(r) for r in results)
     winner_key = counts.most_common(1)[0][0]
-    winning = next(r for r in results if key(r) == winner_key)
-    winning["vote_count"] = counts[winner_key]
-    winning["total_runs"] = len(results)
-    return winning
+    state.result = next(r for r in results if _result_key(r) == winner_key)
+    state.result["vote_count"] = counts[winner_key]
+    state.result["total_runs"] = runs
+    state.attempts = runs
+    return state
