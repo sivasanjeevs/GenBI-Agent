@@ -178,18 +178,44 @@ def _call_gemini_raw(
     }
     if response_schema is not None:
         generation_config_kwargs["response_mime_type"] = "application/json"
-        generation_config_kwargs["response_schema"] = response_schema
+        
+        schema_dict = response_schema.model_json_schema()
+        
+        def _strip_ap(d: Any) -> None:
+            if isinstance(d, dict):
+                d.pop("additionalProperties", None)
+                for v in d.values():
+                    _strip_ap(v)
+            elif isinstance(d, list):
+                for item in d:
+                    _strip_ap(item)
+                    
+        _strip_ap(schema_dict)
+        generation_config_kwargs["response_schema"] = schema_dict
 
     config = genai_types.GenerateContentConfig(**generation_config_kwargs)
 
-    response = client.models.generate_content(
-        model=model,
-        contents=prompt,
-        config=config,
-    )
-
-    # SDK guarantees .text when response_mime_type is application/json
-    return response.text
+    while True:
+        try:
+            response = client.models.generate_content(
+                model=model,
+                contents=prompt,
+                config=config,
+            )
+            # SDK guarantees .text when response_mime_type is application/json
+            return response.text
+        except Exception as exc:
+            msg = str(exc)
+            if "429" in msg and "quota" in msg.lower():
+                import re
+                import time
+                match = re.search(r"['\"]retryDelay['\"]:\s*['\"](\d+)s['\"]", msg)
+                if match:
+                    delay = int(match.group(1)) + 5
+                    logger.warning("Rate limit quota exhausted. Waiting for {} seconds.", delay)
+                    time.sleep(delay)
+                    continue
+            raise
 
 
 # ─── Structured Output (primary public API) ───────────────────────────────────

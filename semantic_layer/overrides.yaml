@@ -27,4 +27,45 @@
 #           P: "Passive - suspended"
 #           D: "Disconnected"
 
-tables: {}
+tables:
+  VID.D_SHOP:
+    semantics:
+      table_description: "Dimension table containing details of Vodafone shops, including location, status, and sales managers."
+    columns:
+      shop_num:
+        description: "The unique shop number/identifier"
+      shop_city:
+        description: "The city where the shop is located. IMPORTANT: Values are uppercase Turkish characters (e.g. 'İSTANBUL', 'İZMİR', 'ANKARA'). Use these exact uppercase strings in queries."
+      shop_district:
+        description: "The district where the shop is located"
+      shop_status:
+        description: "The operational status of the shop"
+        value_map:
+          Active: "The shop is active"
+          Passive: "The shop is inactive"
+      sales_manager_user_name:
+        description: "The user name of the sales manager responsible for this shop"
+    concepts:
+      - term: "Active Shop"
+        description: "A shop that is currently active and operational"
+        filter_sql: "shop_status = 'Active'"
+
+  VID.D_DEVICE_OFFERING:
+    semantics:
+      table_description: "Table containing device offerings and campaigns. Used to find phone campaigns available for sale."
+    columns:
+      offer_id:
+        description: "The unique identifier for a campaign or offer. Use this to count campaigns."
+      device_commercial_name:
+        description: "The commercial name of the device. Group by this when asking 'by device'."
+      product_sub_type_cd:
+        description: "Sub-type of the product. Value 'PHONE' indicates a phone."
+      offer_edt:
+        description: "The end date of the offer. If >= SYSDATE, the offer is available for sale."
+    concepts:
+      - term: "Phone"
+        description: "Device offering for a phone"
+        filter_sql: "PRODUCT_SUB_TYPE_CD = 'PHONE'"
+      - term: "Available for sale"
+        description: "Offerings that are currently available for sale"
+        filter_sql: "OFFER_EDT >= SYSDATE"

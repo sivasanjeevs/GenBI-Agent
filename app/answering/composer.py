@@ -23,6 +23,11 @@ from __future__ import annotations
 
 import json
 import time
+import io
+import base64
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 from typing import Any
 
 from loguru import logger
@@ -110,6 +115,79 @@ def _results_preview(result: dict[str, Any], max_rows: int = 20) -> str:
     return json.dumps(rows, indent=2, default=str)
 
 
+def _generate_chart_base64(chart_sugg: ChartSuggestion, rows: list[dict[str, Any]]) -> str | None:
+    if not rows or chart_sugg.chart_type == "none" or chart_sugg.chart_type not in ["bar", "line", "pie", "scatter"]:
+        return None
+        
+    x_col = chart_sugg.x_column
+    y_col = chart_sugg.y_column
+    
+    # We need at least x_col for labels/x-axis
+    if not x_col or x_col not in rows[0]:
+        # Try to infer if not provided perfectly
+        cols = list(rows[0].keys())
+        if not x_col and cols:
+            x_col = cols[0]
+        else:
+            return None
+            
+    x_data = [r.get(x_col) for r in rows]
+    
+    y_data = []
+    if y_col and y_col in rows[0]:
+        y_data = [r.get(y_col) for r in rows]
+    elif not y_col and len(rows[0]) >= 2:
+        # try to infer y_col
+        cols = list(rows[0].keys())
+        y_col = cols[1] if cols[1] != x_col else cols[0]
+        y_data = [r.get(y_col) for r in rows]
+        
+    fig, ax = plt.subplots(figsize=(8, 5))
+    try:
+        if chart_sugg.chart_type == "bar":
+            if y_data:
+                ax.bar(range(len(x_data)), y_data)
+                ax.set_xticks(range(len(x_data)))
+                ax.set_xticklabels([str(x) for x in x_data], rotation=45, ha='right')
+            else:
+                return None
+        elif chart_sugg.chart_type == "line":
+            if y_data:
+                ax.plot(range(len(x_data)), y_data, marker='o')
+                ax.set_xticks(range(len(x_data)))
+                ax.set_xticklabels([str(x) for x in x_data], rotation=45, ha='right')
+        elif chart_sugg.chart_type == "pie":
+            if y_data:
+                ax.pie(y_data, labels=[str(x) for x in x_data], autopct='%1.1f%%')
+            else:
+                return None
+        elif chart_sugg.chart_type == "scatter":
+            if y_data:
+                ax.scatter(range(len(x_data)), y_data)
+                ax.set_xticks(range(len(x_data)))
+                ax.set_xticklabels([str(x) for x in x_data], rotation=45, ha='right')
+        else:
+            return None
+            
+        if chart_sugg.title:
+            ax.set_title(chart_sugg.title)
+        if x_col and chart_sugg.chart_type != "pie":
+            ax.set_xlabel(x_col)
+        if y_col and chart_sugg.chart_type != "pie":
+            ax.set_ylabel(y_col)
+            
+        plt.tight_layout()
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png')
+        plt.close(fig)
+        buf.seek(0)
+        return base64.b64encode(buf.read()).decode('utf-8')
+    except Exception as e:
+        logger.error(f"Failed to generate chart: {e}")
+        plt.close(fig)
+        return None
+
+
 def _store_turn(
     conversation_id: str | None,
     question_id: str,
@@ -174,6 +252,11 @@ def compose_answer(
         answer_text = friendly.answer
         explanation = friendly.explanation
         chart = friendly.chart.model_dump() if (include_chart and friendly.chart) else None
+        
+        if chart and friendly.chart.chart_type != "none":
+            b64 = _generate_chart_base64(friendly.chart, rows)
+            if b64:
+                chart["image_base64"] = b64
     except Exception as exc:  # noqa: BLE001
         logger.warning("Compose LLM call failed: {} – using fallback.", exc)
         if state.abstained:

@@ -77,11 +77,11 @@ class Settings(BaseSettings):
         description="LLM provider: gemini | openai | anthropic | ollama",
     )
     llm_model: str = Field(
-        "gemini-2.0-flash",
+        "gemini-3.5-flash-lite",
         description="Primary model identifier (LLM_MODEL)",
     )
     llm_model_fast: str = Field(
-        "gemini-2.0-flash",
+        "gemini-3.5-flash-lite",
         description=(
             "Fallback / fast model used when the primary model "
             "repeatedly fails (LLM_MODEL_FAST)"

@@ -1,0 +1,252 @@
+{
+  "generated_at": "2026-10-05T16:22:21Z",
+  "version": "5444797cf42d8b7b",
+  "tables": [
+    {
+      "schema": "GENAIVF",
+      "table_name": "V_MNP_ACTUAL",
+      "full_name": "GENAIVF.V_MNP_ACTUAL",
+      "table_type": "dimension",
+      "business_entity": "Mobile Number Portability (MNP) Transaction",
+      "row_count": 5788,
+      "is_scd": false,
+      "verified_high_concepts": [
+        "Port-In to Vodafone",
+        "Port-Out from Vodafone",
+        "Postpaid Consumer Porting",
+        "Enterprise Porting"
+      ],
+      "version": "5444797cf42d8b7b"
+    },
+    {
+      "schema": "GENAIVF",
+      "table_name": "V_MNP_REQUEST",
+      "full_name": "GENAIVF.V_MNP_REQUEST",
+      "table_type": "dimension",
+      "business_entity": "V_Mnp_Request",
+      "row_count": 8300,
+      "is_scd": false,
+      "verified_high_concepts": [],
+      "version": "5444797cf42d8b7b"
+    },
+    {
+      "schema": "VID",
+      "table_name": "D_CONV_SEGMENT_HIST",
+      "full_name": "VID.D_CONV_SEGMENT_HIST",
+      "table_type": "dimension",
+      "business_entity": "Customer Segment",
+      "row_count": 11389,
+      "is_scd": false,
+      "verified_high_concepts": [
+        "Current Active Segment",
+        "VIP Segment",
+        "Business & Enterprise Customers",
+        "Mass Market Segment"
+      ],
+      "version": "5444797cf42d8b7b"
+    },
+    {
+      "schema": "VID",
+      "table_name": "D_CUSTOMER",
+      "full_name": "VID.D_CUSTOMER",
+      "table_type": "dimension",
+      "business_entity": "Customer",
+      "row_count": 7766,
+      "is_scd": false,
+      "verified_high_concepts": [
+        "Current Customer Records",
+        "Individual Customers",
+        "Corporate Customers",
+        "Current Individual Customers"
+      ],
+      "version": "5444797cf42d8b7b"
+    },
+    {
+      "schema": "VID",
+      "table_name": "D_DEVICE_OFFERING",
+      "full_name": "VID.D_DEVICE_OFFERING",
+      "table_type": "dimension",
+      "business_entity": "D_Device_Offering",
+      "row_count": 186,
+      "is_scd": true,
+      "verified_high_concepts": [],
+      "version": "5444797cf42d8b7b"
+    },
+    {
+      "schema": "VID",
+      "table_name": "D_DEVICE_TYPE",
+      "full_name": "VID.D_DEVICE_TYPE",
+      "table_type": "dimension",
+      "business_entity": "D_Device_Type",
+      "row_count": 50,
+      "is_scd": false,
+      "verified_high_concepts": [],
+      "version": "5444797cf42d8b7b"
+    },
+    {
+      "schema": "VID",
+      "table_name": "D_ICCI_IMSI_SUBS_HIST",
+      "full_name": "VID.D_ICCI_IMSI_SUBS_HIST",
+      "table_type": "dimension",
+      "business_entity": "D_Icci_Imsi_Subs_Hist",
+      "row_count": 11762,
+      "is_scd": false,
+      "verified_high_concepts": [],
+      "version": "5444797cf42d8b7b"
+    },
+    {
+      "schema": "VID",
+      "table_name": "D_SHOP",
+      "full_name": "VID.D_SHOP",
+      "table_type": "fact",
+      "business_entity": "D_Shop",
+      "row_count": 322,
+      "is_scd": false,
+      "verified_high_concepts": [],
+      "version": "5444797cf42d8b7b"
+    },
+    {
+      "schema": "VID",
+      "table_name": "D_SIMCARD",
+      "full_name": "VID.D_SIMCARD",
+      "table_type": "dimension",
+      "business_entity": "D_Simcard",
+      "row_count": 15069,
+      "is_scd": false,
+      "verified_high_concepts": [],
+      "version": "5444797cf42d8b7b"
+    },
+    {
+      "schema": "VID",
+      "table_name": "D_STATUS",
+      "full_name": "VID.D_STATUS",
+      "table_type": "dimension",
+      "business_entity": "D_Status",
+      "row_count": 9,
+      "is_scd": false,
+      "verified_high_concepts": [],
+      "version": "5444797cf42d8b7b"
+    },
+    {
+      "schema": "VID",
+      "table_name": "D_SUBSCRIPTION_EXTENSION",
+      "full_name": "VID.D_SUBSCRIPTION_EXTENSION",
+      "table_type": "dimension",
+      "business_entity": "D_Subscription_Extension",
+      "row_count": 11591,
+      "is_scd": false,
+      "verified_high_concepts": [],
+      "version": "5444797cf42d8b7b"
+    },
+    {
+      "schema": "VID",
+      "table_name": "D_SUBS_DEVICE_OFFER_HIST",
+      "full_name": "VID.D_SUBS_DEVICE_OFFER_HIST",
+      "table_type": "fact",
+      "business_entity": "D_Subs_Device_Offer_Hist",
+      "row_count": 5570,
+      "is_scd": false,
+      "verified_high_concepts": [],
+      "version": "5444797cf42d8b7b"
+    },
+    {
+      "schema": "VID",
+      "table_name": "D_SUBS_TARIFF_HIST",
+      "full_name": "VID.D_SUBS_TARIFF_HIST",
+      "table_type": "fact",
+      "business_entity": "D_Subs_Tariff_Hist",
+      "row_count": 13875,
+      "is_scd": false,
+      "verified_high_concepts": [],
+      "version": "5444797cf42d8b7b"
+    },
+    {
+      "schema": "VID",
+      "table_name": "D_TARIFF",
+      "full_name": "VID.D_TARIFF",
+      "table_type": "dimension",
+      "business_entity": "D_Tariff",
+      "row_count": 39,
+      "is_scd": false,
+      "verified_high_concepts": [],
+      "version": "5444797cf42d8b7b"
+    },
+    {
+      "schema": "VID",
+      "table_name": "F_CUSTOMER_D",
+      "full_name": "VID.F_CUSTOMER_D",
+      "table_type": "fact",
+      "business_entity": "F_Customer_D",
+      "row_count": 42000,
+      "is_scd": false,
+      "verified_high_concepts": [],
+      "version": "5444797cf42d8b7b"
+    },
+    {
+      "schema": "VID",
+      "table_name": "F_LIFECYCLE_KPI",
+      "full_name": "VID.F_LIFECYCLE_KPI",
+      "table_type": "dimension",
+      "business_entity": "F_Lifecycle_Kpi",
+      "row_count": 7192,
+      "is_scd": true,
+      "verified_high_concepts": [],
+      "version": "5444797cf42d8b7b"
+    },
+    {
+      "schema": "VID",
+      "table_name": "F_RATED_MAIN_USAGE_D",
+      "full_name": "VID.F_RATED_MAIN_USAGE_D",
+      "table_type": "fact",
+      "business_entity": "F_Rated_Main_Usage_D",
+      "row_count": 41616,
+      "is_scd": false,
+      "verified_high_concepts": [],
+      "version": "5444797cf42d8b7b"
+    },
+    {
+      "schema": "VID",
+      "table_name": "F_SUBSCRIPTION_D",
+      "full_name": "VID.F_SUBSCRIPTION_D",
+      "table_type": "dimension",
+      "business_entity": "F_Subscription_D",
+      "row_count": 63000,
+      "is_scd": true,
+      "verified_high_concepts": [],
+      "version": "5444797cf42d8b7b"
+    },
+    {
+      "schema": "VID",
+      "table_name": "F_SUBSCRIPTION_USAGE_METRIC_D",
+      "full_name": "VID.F_SUBSCRIPTION_USAGE_METRIC_D",
+      "table_type": "dimension",
+      "business_entity": "F_Subscription_Usage_Metric_D",
+      "row_count": 63000,
+      "is_scd": false,
+      "verified_high_concepts": [],
+      "version": "5444797cf42d8b7b"
+    },
+    {
+      "schema": "VID",
+      "table_name": "F_SUBS_MAF_ANALYSIS_D",
+      "full_name": "VID.F_SUBS_MAF_ANALYSIS_D",
+      "table_type": "dimension",
+      "business_entity": "F_Subs_Maf_Analysis_D",
+      "row_count": 39102,
+      "is_scd": true,
+      "verified_high_concepts": [],
+      "version": "5444797cf42d8b7b"
+    },
+    {
+      "schema": "VID",
+      "table_name": "VD_OFFERING",
+      "full_name": "VID.VD_OFFERING",
+      "table_type": "dimension",
+      "business_entity": "Vd_Offering",
+      "row_count": 242,
+      "is_scd": false,
+      "verified_high_concepts": [],
+      "version": "5444797cf42d8b7b"
+    }
+  ]
+}

@@ -108,8 +108,8 @@ SELECT
     data_scale,
     data_default
 FROM   all_tab_columns
-WHERE  owner      = :schema
-  AND  table_name = :table
+WHERE  owner      = :p_owner
+  AND  table_name = :p_table
 ORDER  BY column_id
 """
 
@@ -126,8 +126,8 @@ FROM   all_constraints  ac
 JOIN   all_cons_columns acc
     ON  ac.owner           = acc.owner
     AND ac.constraint_name = acc.constraint_name
-WHERE  ac.owner       = :schema
-  AND  ac.table_name  = :table
+WHERE  ac.owner       = :p_owner
+  AND  ac.table_name  = :p_table
   AND  ac.constraint_type IN ('P', 'R', 'U', 'C')
 ORDER  BY ac.constraint_name, acc.position
 """
@@ -153,8 +153,8 @@ FROM   all_indexes     ai
 JOIN   all_ind_columns aic
     ON  ai.owner      = aic.index_owner
     AND ai.index_name = aic.index_name
-WHERE  ai.table_owner = :schema
-  AND  ai.table_name  = :table
+WHERE  ai.table_owner = :p_owner
+  AND  ai.table_name  = :p_table
 ORDER  BY ai.index_name, aic.column_position
 """
 
@@ -165,7 +165,7 @@ _ROW_COUNT_SQL = "SELECT COUNT(*) AS cnt FROM {schema}.{table}"
 
 def _build_constraints(schema: str, table: str) -> list[ConstraintMeta]:
     """Query ALL_CONSTRAINTS for a table and resolve FK references."""
-    rows = raw_execute(_CONSTRAINTS_SQL, {"schema": schema, "table": table})
+    rows = raw_execute(_CONSTRAINTS_SQL, {"p_owner": schema, "p_table": table})
 
     # Group rows by constraint name (one DB row per column)
     by_name: dict[str, dict[str, Any]] = {}
@@ -217,7 +217,7 @@ def _build_constraints(schema: str, table: str) -> list[ConstraintMeta]:
 
 def _build_indexes(schema: str, table: str) -> list[IndexMeta]:
     """Query ALL_INDEXES + ALL_IND_COLUMNS for a table."""
-    rows = raw_execute(_INDEXES_SQL, {"schema": schema, "table": table})
+    rows = raw_execute(_INDEXES_SQL, {"p_owner": schema, "p_table": table})
     by_name: dict[str, dict[str, Any]] = {}
     for row in rows:
         iname = row["index_name"]
@@ -268,7 +268,7 @@ def introspect_schemas(schemas: list[str]) -> list[TableMeta]:
         table = tr["table_name"]
 
         # ── Columns ──────────────────────────────────────────────────────────
-        col_rows = raw_execute(_COLUMNS_SQL, {"schema": schema, "table": table})
+        col_rows = raw_execute(_COLUMNS_SQL, {"p_owner": schema, "p_table": table})
         columns = [
             ColumnMeta(
                 name=r["column_name"].lower(),

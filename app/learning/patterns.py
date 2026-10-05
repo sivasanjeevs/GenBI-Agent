@@ -118,11 +118,12 @@ def _verify_grain_sql(schema: str, table: str, columns: list[str]) -> bool:
     """
     if not columns:
         return False
-    cols_expr = ", ".join(f'"{c.upper()}"' for c in columns)
+    # Oracle doesn't support COUNT(DISTINCT (a, b)). We must concatenate.
+    cols_expr = " || '|' || ".join(f'"{c.upper()}"' for c in columns)
     try:
         rows = raw_execute(
             f"SELECT COUNT(*) AS total, "
-            f"COUNT(DISTINCT ({cols_expr})) AS distinct_combo "
+            f"COUNT(DISTINCT {cols_expr}) AS distinct_combo "
             f"FROM {schema}.{table}"
         )
         if rows:
