@@ -142,7 +142,10 @@ def _generate_chart_base64(chart_sugg: ChartSuggestion, rows: list[dict[str, Any
         y_col = cols[1] if cols[1] != x_col else cols[0]
         y_data = [r.get(y_col) for r in rows]
         
+    plt.style.use('dark_background')  # match the dark UI theme
     fig, ax = plt.subplots(figsize=(8, 5))
+    fig.patch.set_facecolor('#0d1117')  # match the card background colour
+    ax.set_facecolor('#161b22')
     try:
         if chart_sugg.chart_type == "bar":
             if y_data:
@@ -163,9 +166,13 @@ def _generate_chart_base64(chart_sugg: ChartSuggestion, rows: list[dict[str, Any
                 return None
         elif chart_sugg.chart_type == "scatter":
             if y_data:
-                ax.scatter(range(len(x_data)), y_data)
-                ax.set_xticks(range(len(x_data)))
-                ax.set_xticklabels([str(x) for x in x_data], rotation=45, ha='right')
+                try:
+                    x_numeric = [float(v) for v in x_data]
+                    ax.scatter(x_numeric, y_data)
+                except (TypeError, ValueError):
+                    ax.scatter(range(len(x_data)), y_data)
+                    ax.set_xticks(range(len(x_data)))
+                    ax.set_xticklabels([str(x) for x in x_data], rotation=45, ha='right')
         else:
             return None
             

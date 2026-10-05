@@ -275,7 +275,7 @@ def eval_results() -> dict[str, Any]:
     from pathlib import Path
 
     results_dir = settings.eval_output_dir
-    files = sorted(results_dir.glob("results_*.json"), reverse=True)
+    files = sorted(results_dir.glob("results*.json"), reverse=True)
     if not files:
         raise HTTPException(status_code=404, detail="No eval results found. Run /eval/run first.")
     latest = json.loads(files[0].read_text())

@@ -3,6 +3,7 @@ import SearchBox from './components/SearchBox'
 import AnswerCard from './components/AnswerCard'
 import TraceViewer from './components/TraceViewer'
 import SqlAccordion from './components/SqlAccordion'
+import { MessageSquare, X } from 'lucide-react'
 
 export default function App() {
   const [query, setQuery] = useState('')
@@ -11,6 +12,19 @@ export default function App() {
   const [result, setResult] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
   const [isTopBar, setIsTopBar] = useState(false)
+  // CP5: track conversation_id for multi-turn follow-ups
+  const [conversationId, setConversationId] = useState<string | null>(null)
+  const [turnCount, setTurnCount] = useState(0)
+
+  const handleNewConversation = () => {
+    setConversationId(null)
+    setTurnCount(0)
+    setResult(null)
+    setError(null)
+    setQuery('')
+    setInputVal('')
+    setIsTopBar(false)
+  }
 
   const handleSearch = async (q: string) => {
     if (!q.trim()) return
@@ -21,14 +35,25 @@ export default function App() {
     setResult(null)
 
     try {
+      const body: Record<string, any> = { question: q }
+      // CP5: attach conversation_id so backend injects prior turn context
+      if (conversationId) {
+        body.conversation_id = conversationId
+      }
+
       const res = await fetch('http://localhost:8000/ask', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question: q })
+        body: JSON.stringify(body),
       })
       if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`)
       const data = await res.json()
       setResult(data)
+      // Store this question's ID as the conversation_id for the next question
+      if (data.question_id) {
+        setConversationId(data.question_id)
+        setTurnCount(prev => prev + 1)
+      }
     } catch (e: any) {
       setError(e.message)
     } finally {
@@ -66,6 +91,25 @@ export default function App() {
               onChange={setInputVal}
             />
           </div>
+
+          {/* CP5: Conversation context badge + reset button */}
+          {conversationId && turnCount > 0 && (
+            <div className="flex items-center gap-2 mt-3">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-dg-primary/30 bg-dg-primary/10 text-blue-300 text-xs font-medium">
+                <MessageSquare className="w-3.5 h-3.5" />
+                Follow-up mode &middot; {turnCount} turn{turnCount !== 1 ? 's' : ''}
+              </div>
+              <button
+                onClick={handleNewConversation}
+                id="btn-new-conversation"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-white/10 bg-white/5 text-gray-400 text-xs font-medium hover:bg-white/10 hover:text-gray-200 transition-all duration-200"
+                title="Start a new conversation (clears context)"
+              >
+                <X className="w-3 h-3" />
+                New conversation
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Results */}

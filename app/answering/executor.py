@@ -33,6 +33,7 @@ Public API
 from __future__ import annotations
 
 import json
+import time
 from collections import Counter
 from typing import Any
 
@@ -70,12 +71,24 @@ def _detect_structural_failure(
     row_count = result.get("row_count", 0)
 
     # Empty result – only flag if this is likely a filter bug (not an aggregate).
-    # If there is only one column named "cnt", "count", "total" we assume an
-    # intentional COUNT query that genuinely returned 0.
+    # Heuristics for "this is an aggregate query that intentionally returned 0":
+    # 1. Single column with an aggregate-sounding name.
+    # 2. Single row returned (most aggregates collapse to one row; a real
+    #    0-row miss on a filter would return nothing, not one empty row).
+    # 3. Query comment starts with an aggregate keyword.
     cols = result.get("columns", [])
-    is_aggregate = len(cols) == 1 and cols[0].lower() in {
+    _AGGREGATE_COL_NAMES = {
         "cnt", "count", "total", "n", "num", "row_count",
+        "sum", "avg", "average", "min", "max", "median",
     }
+    is_aggregate = (
+        # single-column with known aggregate name
+        (len(cols) == 1 and cols[0].lower().split("_")[0] in _AGGREGATE_COL_NAMES)
+        # or single-column with any numeric result (likely COUNT/SUM)
+        or (len(cols) == 1 and len(rows) <= 1)
+        # or multi-column but row-count is exactly 1 (GROUP BY with SUM/COUNT columns)
+        or (len(cols) > 1 and row_count == 1)
+    )
     if row_count == 0 and not is_aggregate:
         return (
             "The query returned 0 rows. This likely means a WHERE filter is "
@@ -185,6 +198,7 @@ def execute_with_repair(state: AnsweringState) -> AnsweringState:
     expected_max = settings.sql_max_rows
 
     last_error: str = ""
+    loop_start = time.perf_counter()  # track total elapsed even on abstain
 
     for attempt in range(1, MAX_REPAIR_ATTEMPTS + 1):
         logger.info("Executing SQL (attempt {}/{})", attempt, MAX_REPAIR_ATTEMPTS)
@@ -225,6 +239,7 @@ def execute_with_repair(state: AnsweringState) -> AnsweringState:
                 logger.warning("Repair failed; keeping previous SQL for next attempt.")
 
     # ── Abstain ───────────────────────────────────────────────────────────────
+    total_elapsed_ms = (time.perf_counter() - loop_start) * 1000
     state.abstained = True
     state.abstain_reason = (
         f"SQL execution failed after {MAX_REPAIR_ATTEMPTS} attempts. "
@@ -235,11 +250,12 @@ def execute_with_repair(state: AnsweringState) -> AnsweringState:
         "columns": [],
         "rows": [],
         "row_count": 0,
-        "elapsed_ms": 0.0,
+        "elapsed_ms": total_elapsed_ms,
         "sql": state.sql,
     }
     logger.error(
-        "Abstaining after {} attempts. Reason: {}", MAX_REPAIR_ATTEMPTS, last_error
+        "Abstaining after {} attempts ({:.0f}ms). Reason: {}",
+        MAX_REPAIR_ATTEMPTS, total_elapsed_ms, last_error,
     )
     return state
 

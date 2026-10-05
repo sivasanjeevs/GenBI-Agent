@@ -2,31 +2,43 @@
   {
     "id": "1",
     "question": "List the active shops in Istanbul with their shop number, district and sales manager.",
-    "difficulty": "Easy"
+    "difficulty": "Easy",
+    "expected_data": null,
+    "notes": "expected_data left null — populate after running the query once and verifying the result set is correct."
   },
   {
     "id": "2",
     "question": "How many phone campaigns are available for sale, by device?",
-    "difficulty": "Easy"
+    "difficulty": "Easy",
+    "expected_data": null,
+    "notes": "expected_data left null — populate after verifying the count per device type."
   },
   {
     "id": "3",
     "question": "Which customer segment had the highest number of unique customers assigned in June 2025?",
-    "difficulty": "Medium"
+    "difficulty": "Medium",
+    "expected_data": null,
+    "notes": "expected_data left null — requires knowing June 2025 segment assignment counts."
   },
   {
     "id": "4",
     "question": "Compare monthly gross adds and disconnections for July and August 2026, showing the month-over-month change in each.",
-    "difficulty": "Medium"
+    "difficulty": "Medium",
+    "expected_data": null,
+    "notes": "expected_data left null — requires July & August 2026 subscriber event counts."
   },
   {
     "id": "5",
     "question": "As of 28 August 2026, how many subscribers in the mobile base used a physical SIM and how many used an eSIM?",
-    "difficulty": "Hard"
+    "difficulty": "Hard",
+    "expected_data": null,
+    "notes": "expected_data left null — requires point-in-time SIM type counts as of 2026-08-28."
   },
   {
     "id": "6",
     "question": "For every disconnection in August 2026, which tariff was the subscription on at the moment of the event? Count disconnections per tariff.",
-    "difficulty": "Hard"
+    "difficulty": "Hard",
+    "expected_data": null,
+    "notes": "expected_data left null — requires August 2026 churn events joined to tariff dimension."
   }
 ]
