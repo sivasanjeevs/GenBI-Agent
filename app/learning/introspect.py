@@ -1,71 +1,78 @@
 """
-introspect.py – Schema introspection for Oracle DB.
+introspect.py – Oracle schema introspection (Phase 2 / Step 1).
 
-Pulls:
-  - All tables in target schemas
-  - Column names, data types, nullable, defaults
-  - Primary keys
-  - Foreign keys / referential constraints
-  - Unique constraints
-  - Check constraints (useful for decoding status flags)
-  - Indexes
+Pulls *structural* information only – no LLM, no profiling.
+All results are expressed as strict Pydantic v2 models so downstream
+modules get typed, validated data.
 
-Output: list[TableMeta] – one per table across all schemas.
+Data gathered per table
+────────────────────────
+• Columns   : name, data_type, nullable, lengths, precision, scale, default
+• PK / FK   : via ALL_CONSTRAINTS + ALL_CONS_COLUMNS (+ recursive ref lookup)
+• Unique     : U-type constraints
+• Check      : C-type constraints (useful for decoding flag columns)
+• Indexes    : via ALL_INDEXES + ALL_IND_COLUMNS
+• Row count  : lightweight COUNT(*) per table
+
+Public API
+──────────
+    introspect_schemas(schemas: list[str]) -> list[TableMeta]
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 from typing import Any
 
 from loguru import logger
+from pydantic import BaseModel, Field
 from tqdm import tqdm
 
 from app.db import raw_execute
 
 
-# ─── Data Classes ─────────────────────────────────────────────────────────────
+# ─── Pydantic Models ──────────────────────────────────────────────────────────
 
-@dataclass
-class ColumnMeta:
+class ColumnMeta(BaseModel):
+    """Metadata for a single column in ALL_TAB_COLUMNS."""
     name: str
     data_type: str
     nullable: bool
-    data_length: int | None
-    data_precision: int | None
-    data_scale: int | None
-    default_value: str | None
+    data_length: int | None = None
+    data_precision: int | None = None
+    data_scale: int | None = None
+    default_value: str | None = None
 
 
-@dataclass
-class ConstraintMeta:
+class ConstraintMeta(BaseModel):
+    """A single constraint (P / R / U / C)."""
     name: str
-    type: str          # P=primary, R=foreign, U=unique, C=check
+    type: str          # P = primary key, R = foreign key, U = unique, C = check
     columns: list[str]
-    ref_table: str | None = None
+    ref_table: str | None = None        # fully qualified: SCHEMA.TABLE
     ref_columns: list[str] | None = None
     search_condition: str | None = None  # for CHECK constraints
 
 
-@dataclass
-class IndexMeta:
+class IndexMeta(BaseModel):
     name: str
     columns: list[str]
-    uniqueness: str    # UNIQUE | NONUNIQUE
+    uniqueness: str    # "UNIQUE" | "NONUNIQUE"
 
 
-@dataclass
-class TableMeta:
-    schema: str
+class TableMeta(BaseModel):
+    """All structural metadata for one Oracle table."""
+    schema_name: str = Field(..., alias="schema")
     table_name: str
-    columns: list[ColumnMeta] = field(default_factory=list)
-    constraints: list[ConstraintMeta] = field(default_factory=list)
-    indexes: list[IndexMeta] = field(default_factory=list)
+    columns: list[ColumnMeta] = Field(default_factory=list)
+    constraints: list[ConstraintMeta] = Field(default_factory=list)
+    indexes: list[IndexMeta] = Field(default_factory=list)
     row_count: int | None = None
+
+    model_config = {"populate_by_name": True}
 
     @property
     def full_name(self) -> str:
-        return f"{self.schema}.{self.table_name}"
+        return f"{self.schema_name}.{self.table_name}"
 
     @property
     def primary_key_columns(self) -> list[str]:
@@ -77,14 +84,18 @@ class TableMeta:
     def foreign_keys(self) -> list[ConstraintMeta]:
         return [c for c in self.constraints if c.type == "R"]
 
+    @property
+    def check_constraints(self) -> list[ConstraintMeta]:
+        return [c for c in self.constraints if c.type == "C"]
 
-# ─── Introspection Queries ────────────────────────────────────────────────────
+
+# ─── SQL Templates ────────────────────────────────────────────────────────────
 
 _ALL_TABLES_SQL = """
 SELECT owner, table_name
-FROM all_tables
-WHERE owner IN ({placeholders})
-ORDER BY owner, table_name
+FROM   all_tables
+WHERE  owner IN ({placeholders})
+ORDER  BY owner, table_name
 """
 
 _COLUMNS_SQL = """
@@ -96,11 +107,13 @@ SELECT
     data_precision,
     data_scale,
     data_default
-FROM all_tab_columns
-WHERE owner = :schema AND table_name = :table
-ORDER BY column_id
+FROM   all_tab_columns
+WHERE  owner      = :schema
+  AND  table_name = :table
+ORDER  BY column_id
 """
 
+# Returns one row per (constraint, column); caller groups by constraint_name.
 _CONSTRAINTS_SQL = """
 SELECT
     ac.constraint_name,
@@ -109,25 +122,26 @@ SELECT
     ac.r_owner,
     ac.r_constraint_name,
     ac.search_condition
-FROM all_constraints ac
-JOIN all_cons_columns acc
-  ON ac.owner = acc.owner
- AND ac.constraint_name = acc.constraint_name
-WHERE ac.owner = :schema
-  AND ac.table_name = :table
-  AND ac.constraint_type IN ('P', 'R', 'U', 'C')
-ORDER BY ac.constraint_name, acc.position
+FROM   all_constraints  ac
+JOIN   all_cons_columns acc
+    ON  ac.owner           = acc.owner
+    AND ac.constraint_name = acc.constraint_name
+WHERE  ac.owner       = :schema
+  AND  ac.table_name  = :table
+  AND  ac.constraint_type IN ('P', 'R', 'U', 'C')
+ORDER  BY ac.constraint_name, acc.position
 """
 
+# Resolve the referenced table + columns for an FK constraint.
 _REF_COLS_SQL = """
 SELECT acc.table_name, acc.column_name
-FROM all_constraints ac
-JOIN all_cons_columns acc
-  ON ac.owner = acc.owner
- AND ac.constraint_name = acc.constraint_name
-WHERE ac.owner = :owner
-  AND ac.constraint_name = :ref_name
-ORDER BY acc.position
+FROM   all_constraints  ac
+JOIN   all_cons_columns acc
+    ON  ac.owner           = acc.owner
+    AND ac.constraint_name = acc.constraint_name
+WHERE  ac.owner           = :owner
+  AND  ac.constraint_name = :ref_name
+ORDER  BY acc.position
 """
 
 _INDEXES_SQL = """
@@ -135,24 +149,25 @@ SELECT
     ai.index_name,
     aic.column_name,
     ai.uniqueness
-FROM all_indexes ai
-JOIN all_ind_columns aic
-  ON ai.owner = aic.index_owner
- AND ai.index_name = aic.index_name
-WHERE ai.table_owner = :schema
-  AND ai.table_name = :table
-ORDER BY ai.index_name, aic.column_position
+FROM   all_indexes     ai
+JOIN   all_ind_columns aic
+    ON  ai.owner      = aic.index_owner
+    AND ai.index_name = aic.index_name
+WHERE  ai.table_owner = :schema
+  AND  ai.table_name  = :table
+ORDER  BY ai.index_name, aic.column_position
 """
 
 _ROW_COUNT_SQL = "SELECT COUNT(*) AS cnt FROM {schema}.{table}"
 
 
-# ─── Helpers ──────────────────────────────────────────────────────────────────
+# ─── Internal Helpers ─────────────────────────────────────────────────────────
 
 def _build_constraints(schema: str, table: str) -> list[ConstraintMeta]:
+    """Query ALL_CONSTRAINTS for a table and resolve FK references."""
     rows = raw_execute(_CONSTRAINTS_SQL, {"schema": schema, "table": table})
 
-    # Group rows by constraint name
+    # Group rows by constraint name (one DB row per column)
     by_name: dict[str, dict[str, Any]] = {}
     for row in rows:
         cname = row["constraint_name"]
@@ -164,22 +179,23 @@ def _build_constraints(schema: str, table: str) -> list[ConstraintMeta]:
                 "r_constraint_name": row["r_constraint_name"],
                 "search_condition": row["search_condition"],
             }
-        by_name[cname]["columns"].append(row["column_name"].lower())
+        col = row["column_name"]
+        if col:
+            by_name[cname]["columns"].append(col.lower())
 
-    constraints = []
+    constraints: list[ConstraintMeta] = []
     for cname, info in by_name.items():
-        ref_table = None
-        ref_columns = None
+        ref_table: str | None = None
+        ref_columns: list[str] | None = None
+
         if info["type"] == "R" and info["r_constraint_name"]:
+            ref_owner = info["r_owner"] or schema
             ref_rows = raw_execute(
                 _REF_COLS_SQL,
-                {
-                    "owner": info["r_owner"] or schema,
-                    "ref_name": info["r_constraint_name"],
-                },
+                {"owner": ref_owner, "ref_name": info["r_constraint_name"]},
             )
             if ref_rows:
-                ref_table = f"{info['r_owner'] or schema}.{ref_rows[0]['table_name']}"
+                ref_table = f"{ref_owner}.{ref_rows[0]['table_name']}"
                 ref_columns = [r["column_name"].lower() for r in ref_rows]
 
         constraints.append(
@@ -189,13 +205,18 @@ def _build_constraints(schema: str, table: str) -> list[ConstraintMeta]:
                 columns=info["columns"],
                 ref_table=ref_table,
                 ref_columns=ref_columns,
-                search_condition=info["search_condition"],
+                search_condition=(
+                    str(info["search_condition"]).strip()
+                    if info["search_condition"]
+                    else None
+                ),
             )
         )
     return constraints
 
 
 def _build_indexes(schema: str, table: str) -> list[IndexMeta]:
+    """Query ALL_INDEXES + ALL_IND_COLUMNS for a table."""
     rows = raw_execute(_INDEXES_SQL, {"schema": schema, "table": table})
     by_name: dict[str, dict[str, Any]] = {}
     for row in rows:
@@ -210,10 +231,12 @@ def _build_indexes(schema: str, table: str) -> list[IndexMeta]:
 
 
 def _get_row_count(schema: str, table: str) -> int | None:
+    """Return approximate row count; returns None on error."""
     try:
         rows = raw_execute(_ROW_COUNT_SQL.format(schema=schema, table=table))
-        return rows[0]["cnt"] if rows else None
-    except Exception:
+        val = rows[0]["cnt"] if rows else None
+        return int(val) if val is not None else None
+    except Exception:  # noqa: BLE001
         return None
 
 
@@ -221,34 +244,42 @@ def _get_row_count(schema: str, table: str) -> int | None:
 
 def introspect_schemas(schemas: list[str]) -> list[TableMeta]:
     """
-    Introspect the given Oracle schemas.
-    Returns a list of TableMeta objects (one per table).
-    """
-    logger.info(f"Introspecting schemas: {schemas}")
+    Introspect one or more Oracle schemas.
 
-    # Fetch all tables
+    Args:
+        schemas: List of schema (owner) names – already upper-cased from
+                 ``settings.schemas``.
+
+    Returns:
+        list[TableMeta] – one entry per table found across all schemas.
+    """
+    schemas = [s.upper() for s in schemas]
+    logger.info("Introspecting schemas: {}", schemas)
+
+    # Build IN-list for ALL_TABLES
     placeholders = ", ".join(f"'{s}'" for s in schemas)
-    table_rows = raw_execute(
-        _ALL_TABLES_SQL.format(placeholders=placeholders)
-    )
-    logger.info(f"Found {len(table_rows)} tables across {schemas}")
+    table_rows = raw_execute(_ALL_TABLES_SQL.format(placeholders=placeholders))
+    logger.info("Found {} tables across {}", len(table_rows), schemas)
 
     result: list[TableMeta] = []
+
     for tr in tqdm(table_rows, desc="Introspecting tables"):
         schema = tr["owner"]
         table = tr["table_name"]
 
-        # Columns
+        # ── Columns ──────────────────────────────────────────────────────────
         col_rows = raw_execute(_COLUMNS_SQL, {"schema": schema, "table": table})
         columns = [
             ColumnMeta(
                 name=r["column_name"].lower(),
                 data_type=r["data_type"],
-                nullable=r["nullable"] == "Y",
+                nullable=(r["nullable"] == "Y"),
                 data_length=r["data_length"],
                 data_precision=r["data_precision"],
                 data_scale=r["data_scale"],
-                default_value=r["data_default"],
+                default_value=(
+                    str(r["data_default"]).strip() if r["data_default"] else None
+                ),
             )
             for r in col_rows
         ]
@@ -268,18 +299,24 @@ def introspect_schemas(schemas: list[str]) -> list[TableMeta]:
             )
         )
         logger.debug(
-            f"  {schema}.{table}: {len(columns)} cols, "
-            f"{row_count} rows, {len(constraints)} constraints"
+            "{}.{}: {} cols | {} constraints | {} rows",
+            schema, table, len(columns), len(constraints), row_count,
         )
 
-    logger.success(f"Introspection complete: {len(result)} tables")
+    logger.success("Introspection complete: {} tables", len(result))
     return result
 
 
+# ─── CLI Smoke Test ───────────────────────────────────────────────────────────
+
 if __name__ == "__main__":
-    # Quick smoke test
     from app.config import settings
 
     tables = introspect_schemas(settings.schemas)
     for t in tables:
-        print(f"{t.full_name}: {len(t.columns)} cols, pk={t.primary_key_columns}")
+        print(
+            f"{t.full_name}: {len(t.columns)} cols "
+            f"pk={t.primary_key_columns} "
+            f"fks={len(t.foreign_keys)} "
+            f"rows={t.row_count}"
+        )

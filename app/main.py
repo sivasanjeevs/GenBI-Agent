@@ -115,8 +115,8 @@ async def learn(req: LearnRequest, background_tasks: BackgroundTasks):
     from app.learning.introspect import introspect_schemas
     from app.learning.profile import profile_schemas
     from app.learning.patterns import detect_patterns
-    from app.learning.enrich import enrich_with_llm
-    from app.learning.verify import verify_concepts
+    from app.learning.enrich import enrich_all
+    from app.learning.verify import verify_all
     from app.learning.store import save_semantic_layer
 
     schemas = req.schemas or settings.schemas
@@ -125,9 +125,13 @@ async def learn(req: LearnRequest, background_tasks: BackgroundTasks):
     try:
         schema_info = introspect_schemas(schemas)
         profiled = profile_schemas(schema_info)
-        patterns = detect_patterns(profiled)
-        enriched = enrich_with_llm(patterns, bypass_cache=req.force_refresh)
-        verified = verify_concepts(enriched)
+        patterns = detect_patterns(profiled, schema_info)  # now needs TableMeta list
+        enriched = enrich_all(patterns, bypass_cache=req.force_refresh)
+        # Build lookup map for verify's repair loop
+        pwp_map = {
+            pwp.profile.full_name.upper(): pwp for pwp in patterns
+        }
+        verified = verify_all(enriched, pwp_map)
         path = save_semantic_layer(verified)
         return LearnResponse(
             status="success",

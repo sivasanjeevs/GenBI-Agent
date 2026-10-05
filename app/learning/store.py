@@ -1,19 +1,41 @@
 """
-store.py – Semantic layer persistence: save, load, and override.
+store.py – Semantic layer persistence (Phase 2 / Step 6).
 
-File layout:
+Compiles the output of introspect → profile → patterns → enrich → verify
+into a single ``semantic_layer.json`` file (plus a per-table index) and
+provides helpers for loading, overriding, and patching.
+
+File layout
+───────────
   semantic_layer/
-    <schema>_<table>.json   – one file per table
-    index.json              – summary index of all tables
-    overrides.yaml          – manual corrections (never auto-overwritten)
-    changelog.json          – audit log of changes
+    semantic_layer.json   – full nested dict; all tables
+    index.json            – summary index for fast lookup
+    overrides.yaml        – human-editable corrections (never auto-overwritten)
+    changelog.json        – append-only audit log
 
-Overrides are merged on top of the auto-generated layer at load time.
-The changelog records every change with timestamp and before/after diff.
+Version hash
+────────────
+Each ``semantic_layer.json`` includes a ``version`` field: the SHA-256 of
+the full JSON body (computed before writing).  Any change to the content
+will produce a new hash, making it easy to detect staleness.
+
+Override merge
+──────────────
+``overrides.yaml`` uses the structure documented in the file itself.
+At load time, ``_apply_overrides`` deep-merges the YAML onto the JSON in
+memory so the response always reflects operator corrections.
+
+Public API
+──────────
+    save_semantic_layer(enrichments: list[TableEnrichment]) -> Path
+    load_semantic_layer() -> dict | None
+    load_table_semantics(full_name: str) -> dict | None
+    apply_overrides(new_overrides: dict) -> None
 """
 
 from __future__ import annotations
 
+import hashlib
 import json
 import time
 from pathlib import Path
@@ -23,69 +45,112 @@ import yaml
 from loguru import logger
 
 from app.config import settings
+from app.learning.enrich import TableEnrichment
 
 
-# ─── Helpers ──────────────────────────────────────────────────────────────────
+# ─── Internal Helpers ─────────────────────────────────────────────────────────
 
-def _table_path(schema: str, table_name: str) -> Path:
+def _serialize(obj: Any) -> Any:
+    """Make objects JSON-serialisable (datetime, Pydantic models, etc.)."""
+    if hasattr(obj, "isoformat"):      # datetime / date / time
+        return obj.isoformat()
+    if hasattr(obj, "model_dump"):     # Pydantic BaseModel
+        return obj.model_dump()
+    return str(obj)
+
+
+def _to_dict(te: TableEnrichment) -> dict[str, Any]:
+    """Convert a TableEnrichment to a plain JSON-serialisable dict."""
+    d = te.model_dump()
+    # Nested Pydantic objects (semantics, etc.) are already dicts after model_dump.
+    return d
+
+
+def _semantic_layer_path() -> Path:
     settings.semantic_layer_dir.mkdir(parents=True, exist_ok=True)
-    return settings.semantic_layer_dir / f"{schema}_{table_name}.json"
+    return settings.semantic_layer_dir / "semantic_layer.json"
 
 
 def _index_path() -> Path:
     return settings.semantic_layer_dir / "index.json"
 
 
-def _serialize(obj: Any) -> Any:
-    """Make objects JSON-serialisable."""
-    if hasattr(obj, "isoformat"):
-        return obj.isoformat()
-    return str(obj)
+def _version_hash(payload: str) -> str:
+    """SHA-256 of the JSON body, truncated to 16 hex chars for readability."""
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
 
 
 # ─── Save ─────────────────────────────────────────────────────────────────────
 
-def save_semantic_layer(enriched: list[dict[str, Any]]) -> Path:
+def save_semantic_layer(enrichments: list[TableEnrichment]) -> Path:
     """
-    Write each table's semantic data to its own JSON file.
-    Write an index.json summary.
-    Returns the semantic_layer directory path.
+    Persist the full semantic layer to disk.
+
+    Writes:
+    • ``semantic_layer.json``  – full nested object (all tables + version hash)
+    • ``index.json``           – lightweight summary for fast lookup
+
+    Args:
+        enrichments: Output of ``verify_all()``.
+
+    Returns:
+        Path to the ``semantic_layer/`` directory.
     """
     settings.semantic_layer_dir.mkdir(parents=True, exist_ok=True)
-    index = []
 
-    for table_info in enriched:
-        schema = table_info["schema"]
-        table_name = table_info["table_name"]
-        path = _table_path(schema, table_name)
-        path.write_text(
-            json.dumps(table_info, indent=2, default=_serialize),
-            encoding="utf-8",
-        )
+    tables_data: list[dict[str, Any]] = [_to_dict(te) for te in enrichments]
+
+    # Build the wrapper object *without* version first, so we can hash it.
+    wrapper: dict[str, Any] = {
+        "generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "schemas": list({te.schema_name for te in enrichments}),
+        "table_count": len(enrichments),
+        "tables": tables_data,
+    }
+
+    body_json = json.dumps(wrapper, indent=2, default=_serialize, ensure_ascii=False)
+    wrapper["version"] = _version_hash(body_json)
+
+    final_json = json.dumps(wrapper, indent=2, default=_serialize, ensure_ascii=False)
+
+    sl_path = _semantic_layer_path()
+    sl_path.write_text(final_json, encoding="utf-8")
+    logger.success(
+        "Semantic layer saved → {} ({} tables, version={})",
+        sl_path, len(enrichments), wrapper["version"],
+    )
+
+    # ── Write index ──────────────────────────────────────────────────────────
+    index: list[dict[str, Any]] = []
+    for te in enrichments:
+        high_concepts = [
+            v["term"] for v in te.verified_concepts if v.get("confidence") == "high"
+        ]
         index.append(
             {
-                "schema": schema,
-                "table_name": table_name,
-                "full_name": table_info["full_name"],
-                "table_type": table_info.get("table_type"),
-                "business_entity": table_info.get("semantics", {}).get("business_entity"),
-                "table_description": table_info.get("semantics", {}).get("table_description"),
-                "row_count": table_info.get("row_count"),
-                "is_scd": table_info.get("is_scd"),
-                "file": str(path),
+                "schema": te.schema_name,
+                "table_name": te.table_name,
+                "full_name": te.full_name,
+                "table_type": te.table_type,
+                "business_entity": te.semantics.business_entity,
+                "row_count": te.row_count,
+                "is_scd": te.is_scd,
+                "verified_high_concepts": high_concepts,
+                "version": wrapper["version"],
             }
         )
-
     _index_path().write_text(
         json.dumps(
-            {"generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "tables": index},
+            {
+                "generated_at": wrapper["generated_at"],
+                "version": wrapper["version"],
+                "tables": index,
+            },
             indent=2,
         ),
         encoding="utf-8",
     )
-    logger.success(
-        f"Semantic layer saved: {len(enriched)} tables → {settings.semantic_layer_dir}"
-    )
+
     return settings.semantic_layer_dir
 
 
@@ -93,41 +158,40 @@ def save_semantic_layer(enriched: list[dict[str, Any]]) -> Path:
 
 def load_semantic_layer() -> dict[str, Any] | None:
     """
-    Load the full semantic layer (all table files + merge overrides).
-    Returns None if not yet generated.
+    Load the full semantic layer from disk and apply overrides.
+
+    Returns:
+        The merged dict, or None if no layer has been generated yet.
     """
-    if not _index_path().exists():
+    sl_path = _semantic_layer_path()
+    if not sl_path.exists():
         return None
 
-    index_data = json.loads(_index_path().read_text())
-    tables: list[dict[str, Any]] = []
+    data: dict[str, Any] = json.loads(sl_path.read_text(encoding="utf-8"))
 
-    for entry in index_data["tables"]:
-        fpath = Path(entry["file"])
-        if fpath.exists():
-            table_data = json.loads(fpath.read_text())
-            tables.append(table_data)
-
-    # Merge overrides
+    # Apply human overrides on top
     overrides = _load_overrides()
     if overrides:
-        tables = _apply_overrides_to_tables(tables, overrides)
+        data = _apply_overrides(data, overrides)
 
-    return {
-        "generated_at": index_data["generated_at"],
-        "tables": tables,
-    }
+    return data
 
 
 def load_table_semantics(full_name: str) -> dict[str, Any] | None:
-    """Load semantics for a single table by its full name (SCHEMA.TABLE)."""
-    parts = full_name.upper().split(".")
-    if len(parts) != 2:
+    """
+    Load semantics for a single table by its full name (SCHEMA.TABLE).
+
+    Scans the in-memory loaded layer rather than a separate per-table file,
+    which keeps the storage flat (one file = one source of truth).
+    """
+    layer = load_semantic_layer()
+    if layer is None:
         return None
-    path = _table_path(parts[0], parts[1])
-    if not path.exists():
-        return None
-    return json.loads(path.read_text())
+    target = full_name.upper()
+    return next(
+        (t for t in layer.get("tables", []) if t.get("full_name", "").upper() == target),
+        None,
+    )
 
 
 # ─── Overrides ────────────────────────────────────────────────────────────────
@@ -135,63 +199,100 @@ def load_table_semantics(full_name: str) -> dict[str, Any] | None:
 def _load_overrides() -> dict[str, Any]:
     if not settings.overrides_file.exists():
         return {}
-    with open(settings.overrides_file) as f:
-        return yaml.safe_load(f) or {}
+    try:
+        with open(settings.overrides_file, encoding="utf-8") as f:
+            return yaml.safe_load(f) or {}
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Failed to load overrides.yaml: {}", exc)
+        return {}
 
 
-def _apply_overrides_to_tables(
-    tables: list[dict[str, Any]],
+def _apply_overrides(
+    layer: dict[str, Any],
     overrides: dict[str, Any],
-) -> list[dict[str, Any]]:
+) -> dict[str, Any]:
     """
-    Merge overrides.yaml into the in-memory semantic layer.
-    Override structure:
-      tables:
-        VID.SUBSCRIBERS:
-          semantics:
-            table_description: "..."
-          columns:
-            status:
-              value_map:
-                A: Active
+    Deep-merge ``overrides.yaml`` onto the in-memory semantic layer dict.
+
+    Override file structure (YAML):
+
+        tables:
+          VID.SUBSCRIBERS:
+            semantics:
+              table_description: "Overridden description"
+            concepts:
+              - term: "Active Subscribers"
+                filter_sql: "status = 'A'"
+                rationale: "Manually verified"
+            columns:
+              status:
+                value_map:
+                  A: Active
+                  P: Passive
     """
-    table_overrides = overrides.get("tables", {})
+    table_overrides: dict[str, Any] = overrides.get("tables", {})
+    tables: list[dict[str, Any]] = layer.get("tables", [])
+
     for table in tables:
-        full_name = table["full_name"]
-        if full_name in table_overrides:
-            ov = table_overrides[full_name]
-            # Deep merge semantics
-            if "semantics" in ov:
-                table["semantics"].update(ov["semantics"])
-            # Column-level overrides
-            if "columns" in ov:
-                for col, col_ov in ov["columns"].items():
-                    if col in table["semantics"].get("columns", {}):
-                        table["semantics"]["columns"][col].update(col_ov)
-                    else:
-                        table["semantics"].setdefault("columns", {})[col] = col_ov
-    return tables
+        full_name: str = table.get("full_name", "")
+        ov: dict[str, Any] = table_overrides.get(full_name, {})
+        if not ov:
+            continue
+
+        # Top-level semantics override
+        if "semantics" in ov:
+            _deep_merge(table.setdefault("semantics", {}), ov["semantics"])
+
+        # Concept-level overrides (replace matching concept by term)
+        if "concepts" in ov:
+            existing_concepts: list[dict] = table.get("verified_concepts", [])
+            for ov_concept in ov["concepts"]:
+                term = ov_concept.get("term")
+                matched = next((c for c in existing_concepts if c.get("term") == term), None)
+                if matched:
+                    matched.update(ov_concept)
+                else:
+                    existing_concepts.append({**ov_concept, "confidence": "manual"})
+            table["verified_concepts"] = existing_concepts
+
+        # Column-level overrides (nested under semantics.columns)
+        if "columns" in ov:
+            sem_cols: dict = table.setdefault("semantics", {}).setdefault("columns", {})
+            for col_name, col_ov in ov["columns"].items():
+                if col_name in sem_cols:
+                    _deep_merge(sem_cols[col_name], col_ov)
+                else:
+                    sem_cols[col_name] = col_ov
+
+    return layer
 
 
 def apply_overrides(new_overrides: dict[str, Any]) -> None:
     """
-    Merge new_overrides into overrides.yaml and update the changelog.
+    Merge ``new_overrides`` into ``overrides.yaml`` and log the change.
+
+    The changelog is append-only; the overrides.yaml is updated in place.
+
+    Args:
+        new_overrides: Dict following the overrides.yaml structure.
     """
     settings.overrides_file.parent.mkdir(parents=True, exist_ok=True)
 
     existing = _load_overrides()
-    _changelog_append({"action": "override", "before": existing, "after": new_overrides})
+    _changelog_append({"action": "override", "before": existing, "patch": new_overrides})
 
-    # Deep merge
     _deep_merge(existing, new_overrides)
 
-    with open(settings.overrides_file, "w") as f:
+    with open(settings.overrides_file, "w", encoding="utf-8") as f:
         yaml.safe_dump(existing, f, allow_unicode=True, sort_keys=False)
 
-    logger.info("Overrides saved to overrides.yaml")
+    logger.info("Overrides saved to {}", settings.overrides_file)
 
 
-def _deep_merge(base: dict, override: dict) -> None:
+# ─── Utilities ────────────────────────────────────────────────────────────────
+
+def _deep_merge(base: dict[str, Any], override: dict[str, Any]) -> None:
+    """Recursively merge ``override`` into ``base`` in place."""
     for k, v in override.items():
         if isinstance(v, dict) and isinstance(base.get(k), dict):
             _deep_merge(base[k], v)
@@ -203,7 +304,13 @@ def _changelog_append(entry: dict[str, Any]) -> None:
     settings.changelog_file.parent.mkdir(parents=True, exist_ok=True)
     log: list[dict[str, Any]] = []
     if settings.changelog_file.exists():
-        log = json.loads(settings.changelog_file.read_text())
+        try:
+            log = json.loads(settings.changelog_file.read_text(encoding="utf-8"))
+        except Exception:  # noqa: BLE001
+            log = []
     entry["timestamp"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     log.append(entry)
-    settings.changelog_file.write_text(json.dumps(log, indent=2, default=_serialize))
+    settings.changelog_file.write_text(
+        json.dumps(log, indent=2, default=_serialize, ensure_ascii=False),
+        encoding="utf-8",
+    )

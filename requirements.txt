@@ -7,7 +7,7 @@ python-multipart>=0.0.9
 oracledb>=2.3.0           # thin-mode driver, no instant client needed
 
 # ─── LLM Providers ───────────────────────────────────────────────────────────
-google-generativeai>=0.7.0   # Gemini
+google-genai>=0.8.0          # Gemini (new SDK – replaces google-generativeai)
 openai>=1.30.0               # OpenAI (optional fallback)
 anthropic>=0.26.0            # Anthropic (optional fallback)
 
