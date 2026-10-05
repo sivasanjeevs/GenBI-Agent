@@ -1,0 +1,40 @@
+{
+  "timestamp": "2026-10-05T14:51:34Z",
+  "model": "gemini-3.6-flash",
+  "total_questions": 1,
+  "answerable": 0,
+  "correct": 0,
+  "consistent": 0,
+  "accuracy": 0.0,
+  "consistency_rate": 0.0,
+  "answerability_rate": 0.0,
+  "avg_retries": 0.0,
+  "p50_latency_ms": 124.68733199784765,
+  "p95_latency_ms": 124.68733199784765,
+  "results": [
+    {
+      "question_id": "1",
+      "question": "What is 1 + 1?",
+      "difficulty": "easy",
+      "runs": [
+        {
+          "sql": "",
+          "rows": [],
+          "row_count": 0,
+          "elapsed_ms": 0.0,
+          "total_latency_ms": 124.68733199784765,
+          "attempts": 0,
+          "repaired": false,
+          "abstained": true,
+          "error": "UNANSWERABLE: Semantic layer not found. Run /learn first.",
+          "model": "gemini-3.6-flash"
+        }
+      ],
+      "is_consistent": false,
+      "is_correct": null,
+      "avg_latency_ms": 124.68733199784765,
+      "avg_retries": 0.0,
+      "success_rate": 0.0
+    }
+  ]
+}

@@ -1,18 +1,22 @@
 """
-compare.py – Result comparison for evaluation.
+compare.py – Robust data comparator for evaluation (Phase 4 / Step 1).
 
-The hackathon spec says: "Compare the answers (the data), not the query text."
-Column order, row order, and column names are ignored.
+Crucial Rule: Compare the answers (the data), not the query text.
+Equivalent queries are fully accepted.
 
-Comparison modes:
-  1. Exact data match (after normalisation)
-  2. Numeric tolerance match (for aggregated values)
-  3. Subset match (expected ⊆ actual, for partial results)
+Normalisation rules:
+1. Ignore column names and column order.
+2. Ignore row order (but respect duplicate rows).
+3. Round floats/decimals to 2 decimal places.
+4. Convert dates/timestamps to canonical string formats.
+5. All strings are stripped and uppercased.
 """
 
 from __future__ import annotations
 
 import math
+from collections import Counter
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
 
@@ -20,26 +24,52 @@ from typing import Any
 # ─── Normalisation ────────────────────────────────────────────────────────────
 
 def _norm_value(v: Any) -> str:
-    """Normalise a value for comparison."""
+    """
+    Normalise a single cell value.
+    - Floats/Decimals: rounded to 2 decimal places.
+    - Dates: canonical string YYYY-MM-DD (or full ISO).
+    - Strings: stripped and uppercased.
+    - None: "NULL"
+    """
     if v is None:
         return "NULL"
+
+    # Numbers
     if isinstance(v, float):
         if math.isnan(v) or math.isinf(v):
             return str(v)
-        # Round to 4 decimal places to avoid floating-point noise
-        return str(round(v, 4))
+        return f"{v:.2f}"
     if isinstance(v, Decimal):
-        return str(round(float(v), 4))
+        return f"{float(v):.2f}"
+    # Sometimes ints come back as floats from JSON
+    if isinstance(v, int):
+        return str(v)
+
+    # Dates
+    if isinstance(v, datetime):
+        return v.strftime("%Y-%m-%d %H:%M:%S")
+    if isinstance(v, date):
+        return v.strftime("%Y-%m-%d")
+
+    # Strings
     return str(v).strip().upper()
 
 
-def _norm_row(row: dict[str, Any]) -> frozenset[tuple[str, str]]:
-    """Normalise a row dict to a frozenset of (value,) pairs (column-order-agnostic)."""
-    return frozenset(_norm_value(v) for v in row.values())
+def _norm_row(row: dict[str, Any]) -> tuple[str, ...]:
+    """
+    Normalise a row dictionary into a sorted tuple of its values.
+    Sorting the values ignores column names and column order.
+    Using a tuple (rather than a set) preserves duplicate values in the same row.
+    """
+    return tuple(sorted(_norm_value(v) for v in row.values()))
 
 
-def _norm_result(rows: list[dict[str, Any]]) -> frozenset[frozenset[tuple[str, str]]]:
-    return frozenset(_norm_row(r) for r in rows)
+def _norm_result(rows: list[dict[str, Any]]) -> Counter[tuple[str, ...]]:
+    """
+    Normalise a list of rows into a Counter of row-tuples.
+    This ignores row order entirely but strictly enforces exact row multiplicities.
+    """
+    return Counter(_norm_row(r) for r in rows)
 
 
 # ─── Public Interface ─────────────────────────────────────────────────────────
@@ -47,37 +77,34 @@ def _norm_result(rows: list[dict[str, Any]]) -> frozenset[frozenset[tuple[str, s
 def compare_results(
     actual: list[dict[str, Any]],
     expected: list[dict[str, Any]] | Any,
-    *,
-    allow_subset: bool = False,
-    numeric_tolerance: float = 0.01,
 ) -> bool:
     """
-    Compare two result sets.
+    Compare two result sets exactly on data content.
 
     Args:
         actual: Rows returned by the agent's query.
         expected: Expected rows (from benchmark). Can also be a scalar.
-        allow_subset: If True, pass if expected ⊆ actual.
-        numeric_tolerance: Relative tolerance for numeric comparisons.
 
     Returns:
-        True if results match within tolerance.
+        True if the data matches perfectly after normalisation.
     """
-    # Handle scalar expected (e.g. a single count)
+    # ── Scalar expected (e.g. a single count) ────────────────────────────────
     if not isinstance(expected, list):
-        # Check if actual has a single numeric cell equal to expected
         if len(actual) == 1 and len(actual[0]) == 1:
             actual_val = list(actual[0].values())[0]
+            # Try numeric tolerance first for scalars
             try:
                 a = float(str(actual_val))
                 e = float(str(expected))
                 if e == 0:
                     return a == 0
-                return abs(a - e) / abs(e) <= numeric_tolerance
+                return abs(a - e) / abs(e) <= 0.01  # 1% tolerance
             except (ValueError, TypeError):
+                # Fallback to string match
                 return _norm_value(actual_val) == _norm_value(expected)
         return False
 
+    # ── Dataset expected ─────────────────────────────────────────────────────
     if not actual and not expected:
         return True
     if not actual or not expected:
@@ -86,30 +113,68 @@ def compare_results(
     norm_actual = _norm_result(actual)
     norm_expected = _norm_result(expected)
 
-    if allow_subset:
-        return norm_expected.issubset(norm_actual)
-
     return norm_actual == norm_expected
 
 
-def diff_results(
-    actual: list[dict[str, Any]],
-    expected: list[dict[str, Any]],
-) -> dict[str, Any]:
-    """
-    Return a diff showing rows in expected but not in actual, and vice versa.
-    Useful for debugging failed eval questions.
-    """
-    norm_actual = _norm_result(actual)
-    norm_expected = _norm_result(expected)
+# ─── Pytest Block ─────────────────────────────────────────────────────────────
 
-    missing = norm_expected - norm_actual    # in expected but not actual
-    extra = norm_actual - norm_expected      # in actual but not expected
+def test_norm_value_float_rounding():
+    assert _norm_value(3.14159) == "3.14"
+    assert _norm_value(Decimal("3.14159")) == "3.14"
+    assert _norm_value(10.0) == "10.00"
 
-    return {
-        "match": norm_actual == norm_expected,
-        "actual_count": len(actual),
-        "expected_count": len(expected),
-        "missing_rows": len(missing),
-        "extra_rows": len(extra),
-    }
+def test_norm_value_dates():
+    assert _norm_value(date(2026, 8, 28)) == "2026-08-28"
+    assert _norm_value(datetime(2026, 8, 28, 14, 30, 0)) == "2026-08-28 14:30:00"
+
+def test_norm_value_strings():
+    assert _norm_value("  Active ") == "ACTIVE"
+    assert _norm_value(None) == "NULL"
+
+def test_row_column_order_ignored():
+    row1 = {"col_a": "X", "col_b": "Y"}
+    row2 = {"col_b": "Y", "col_a": "X"}
+    row3 = {"foo": "Y", "bar": "X"}  # different column names
+    assert _norm_row(row1) == ("X", "Y")
+    assert _norm_row(row1) == _norm_row(row2)
+    assert _norm_row(row1) == _norm_row(row3)
+
+def test_row_duplicates_preserved():
+    # A row with two identical values shouldn't collapse to one
+    row = {"a": 1, "b": 1}
+    assert _norm_row(row) == ("1", "1")
+
+def test_result_row_order_ignored():
+    actual = [
+        {"id": 1, "status": "A"},
+        {"id": 2, "status": "B"},
+    ]
+    expected = [
+        {"uid": 2, "state": "B"},
+        {"uid": 1, "state": "A"},
+    ]
+    assert compare_results(actual, expected) is True
+
+def test_result_row_multiplicity_enforced():
+    actual = [
+        {"val": "X"},
+        {"val": "X"},
+    ]
+    expected = [
+        {"val": "X"},
+    ]
+    assert compare_results(actual, expected) is False
+
+def test_compare_scalar():
+    actual = [{"cnt": 42}]
+    assert compare_results(actual, 42) is True
+    assert compare_results(actual, 42.0) is True
+    assert compare_results(actual, "42") is True
+    assert compare_results(actual, 43) is False
+
+def test_compare_scalar_tolerance():
+    actual = [{"avg_val": 3.14159}]
+    # Within 1% tolerance
+    assert compare_results(actual, 3.14) is True
+    assert compare_results(actual, 3.16) is True
+    assert compare_results(actual, 4.00) is False

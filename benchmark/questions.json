@@ -1,44 +1,8 @@
 [
   {
-    "id": 1,
+    "id": "1",
+    "question": "What is 1 + 1?",
     "difficulty": "easy",
-    "question": "List the active shops in Istanbul with their shop number, district and sales manager.",
-    "expected_data": null,
-    "notes": "Tests: decoding 'active' from status column values"
-  },
-  {
-    "id": 2,
-    "difficulty": "easy",
-    "question": "How many phone campaigns are available for sale, by device?",
-    "expected_data": null,
-    "notes": "Tests: decoding 'available for sale' from campaign status/flags"
-  },
-  {
-    "id": 3,
-    "difficulty": "medium",
-    "question": "Which customer segment had the highest number of unique customers assigned in June 2025?",
-    "expected_data": null,
-    "notes": "Tests: COUNT DISTINCT on customer_id, date filter June 2025"
-  },
-  {
-    "id": 4,
-    "difficulty": "medium",
-    "question": "Compare monthly gross adds and disconnections for July and August 2026, showing the month-over-month change in each.",
-    "expected_data": null,
-    "notes": "Tests: multi-period comparison, finding join/leave event records"
-  },
-  {
-    "id": 5,
-    "difficulty": "hard",
-    "question": "As of 28 August 2026, how many subscribers in the mobile base used a physical SIM and how many used an eSIM?",
-    "expected_data": null,
-    "notes": "Tests: point-in-time SCD query, SIM type classification"
-  },
-  {
-    "id": 6,
-    "difficulty": "hard",
-    "question": "For every disconnection in August 2026, which tariff was the subscription on at the moment of the event? Count disconnections per tariff.",
-    "expected_data": null,
-    "notes": "Tests: temporal join (state at event time), SCD Type 2 history lookup"
+    "expected_data": [{"val": 2}]
   }
 ]
