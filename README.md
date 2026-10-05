@@ -1,127 +1,143 @@
-# Rosetta – GenBI Agent
+# 🚀 Rosetta – GenBI Agent
 
-## Project Structure
+![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green.svg)
+![Oracle 23ai](https://img.shields.io/badge/Database-Oracle%2023ai-red.svg)
+![Gemini AI](https://img.shields.io/badge/LLM-Google%20Gemini-orange.svg)
+![Status](https://img.shields.io/badge/Status-Hackathon%20Ready-success.svg)
+
+**Rosetta** is an advanced, autonomous Generative Business Intelligence (GenBI) agent built for the **DataGenie Engineering Hackathon 2026**. 
+
+Unlike traditional Text-to-SQL tools that rely on manually hardcoded definitions, Rosetta operates autonomously. It dynamically introspects the database, profiles data values, detects complex schema patterns (SCD Type 2, fact/dimension, grain), and leverages LLMs to generate a robust semantic layer on the fly. 
+
+## ✨ Key Features
+
+* **🧠 Autonomous Semantic Learning**: Automatically learns schema relationships, table grains, and decodes cryptic status codes into a human-readable semantic layer.
+* **🛡️ Self-Healing SQL Generation**: Implements an intelligent repair loop. If a generated query fails on execution, the agent receives the Oracle error context and dynamically rewrites the query.
+* **📊 Context-Aware Answering**: Understands relative dates (e.g., "last month") and dynamically resolves them to deterministic values before planning queries.
+* **⚡ Highly Optimized LLM Usage**: Employs aggressive disk caching and parallel execution to minimize token usage and API latency.
+* **🧪 Integrated Eval Harness**: Includes a fully automated benchmarking suite to test against ground-truth questions and evaluate the consistency, speed, and accuracy of the semantic layer.
+
+---
+
+## 🏗️ Architecture & Pipeline
+
+Rosetta's architecture is divided into two primary pipelines: **Learning** and **Answering**.
+
+```mermaid
+graph TD
+    subgraph Learning Pipeline
+        A[Introspect Schema] --> B[Profile Data Values]
+        B --> C[Detect Schema Patterns]
+        C --> D[LLM Semantic Enrichment]
+        D --> E[SQL Concept Verification]
+        E --> F[(Semantic Layer JSON)]
+    end
+
+    subgraph Answering Pipeline
+        Q((User Question)) --> G[Date Resolution]
+        G --> H[Semantic Retrieval]
+        H --> I[LLM Query Planner]
+        I --> J{SQL Execution Guard}
+        J -- Error --> I
+        J -- Success --> K[Data Synthesis]
+        K --> L((Final Answer & Query))
+    end
+    
+    F -.-> H
 ```
-rosetta/
-├── app/
-│   ├── main.py              # FastAPI app + routes
-│   ├── config.py            # env loading
-│   ├── db.py                # Oracle connection + safe execution
-│   ├── llm.py               # LLM wrapper + disk cache
-│   ├── learning/
-│   │   ├── introspect.py    # schema, constraints
-│   │   ├── profile.py       # value profiling
-│   │   ├── patterns.py      # grain, joins, SCD, events, flags
-│   │   ├── enrich.py        # LLM meanings
-│   │   ├── verify.py        # run concepts as SQL to prove them
-│   │   └── store.py         # semantic layer save/load/overrides
-│   ├── answering/
-│   │   ├── dates.py         # deterministic date resolver
-│   │   ├── retrieve.py      # pick relevant semantics
-│   │   ├── planner.py       # question -> plan -> SQL
-│   │   ├── guard.py         # SELECT-only, sqlglot checks
-│   │   ├── executor.py      # run + repair loop + vote
-│   │   └── composer.py      # answer + explanation
-│   └── eval/
-│       ├── harness.py
-│       └── compare.py
-├── semantic_layer/          # generated JSON + overrides.yaml + changelog
-├── eval_output/             # harness results (commit these)
-├── benchmark/questions.json
-├── frontend/                # optional UI
-├── .env  (gitignored)
-├── .env.example
-├── .gitignore
-├── requirements.txt
-└── README.md
-```
 
-## Quickstart
+---
 
-### 1. Clone & install
+## ⚙️ Local Setup & Installation
+
+### 1. Prerequisites
+* Python 3.11+
+* Oracle Database 23ai Client / Instant Client
+* Gemini API Key
+
+### 2. Clone & Install
 ```bash
-git clone <your-repo>
+git clone <your-repo-url>
 cd rosetta
-python3 -m venv .venv && source .venv/bin/activate
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 2. Configure
+### 3. Environment Configuration
+Copy the `.env.example` to `.env` and configure your credentials:
 ```bash
 cp .env.example .env
-# Edit .env: fill in ORACLE_PASSWORD and your LLM API key
+```
+Ensure the following variables are set in your `.env` file:
+```ini
+ORACLE_HOST=20.102.78.61
+ORACLE_PORT=1521
+ORACLE_SERVICE=FREEPDB1
+ORACLE_USER=VF_AGENT
+ORACLE_PASSWORD=your_oracle_password_here
+LLM_PROVIDER=gemini
+LLM_MODEL=gemini-2.0-flash
+GEMINI_API_KEY=your_gemini_api_key_here
 ```
 
-### 3. Run the learning pipeline
+---
+
+## 🚀 Usage
+
+### Starting the Server
+Rosetta provides a robust FastAPI backend. Start the server using `uvicorn`:
 ```bash
-python -m app.learning.introspect   # introspect schema
-python -m app.learning.profile      # profile values
-python -m app.learning.patterns     # detect grain / joins / SCDs
-python -m app.learning.enrich       # LLM meanings
-python -m app.learning.verify       # validate as SQL
-# semantic_layer/ is now populated
+python -m uvicorn app.main:app --reload
 ```
 
-Or trigger via API:
+### Step 1: Train the Agent (Build Semantic Layer)
+Before asking questions, point the agent at the database so it can learn the data relationships:
 ```bash
-uvicorn app.main:app --reload
 curl -X POST http://localhost:8000/learn
 ```
+*Note: This will perform deep introspection. Progress bars will be visible in the server logs. The resulting semantic layer is saved to `semantic_layer/semantic_layer.json`.*
 
-### 4. Ask questions
+### Step 2: Ask Business Questions
+Once the semantic layer is built, you can query the agent in natural language:
 ```bash
 curl -X POST http://localhost:8000/ask \
   -H "Content-Type: application/json" \
   -d '{"question": "List the active shops in Istanbul"}'
 ```
 
-### 5. Run evaluation harness
+### Step 3: Run the Evaluation Benchmark
+Validate the agent's performance against the benchmark questions:
 ```bash
-python -m app.eval.harness
-# Results written to eval_output/
+curl -X POST http://localhost:8000/eval/run
 ```
+*Results are automatically saved to the `eval_output/` directory.*
 
-## API Reference
+---
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/learn` | Run full learning pipeline |
-| GET | `/semantic-layer` | View current semantic layer |
-| POST | `/semantic-layer/override` | Apply manual overrides |
-| POST | `/ask` | Answer a business question |
-| GET | `/ask/{question_id}/history` | Conversation follow-ups |
-| POST | `/eval/run` | Trigger evaluation harness |
-| GET | `/eval/results` | Latest harness results |
-| GET | `/health` | Health check |
+## 📚 API Reference
 
-## Checkpoints
+| HTTP Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/learn` | Trigger the autonomous DB learning pipeline. |
+| `GET` | `/semantic-layer` | View the generated semantic layer definition. |
+| `POST` | `/semantic-layer/override` | Apply manual, auditable corrections to semantics. |
+| `POST` | `/ask` | Submit a natural language question. |
+| `GET` | `/ask/{id}/history` | Fetch context for conversational follow-ups. |
+| `POST` | `/eval/run` | Execute the evaluation harness. |
+| `GET` | `/health` | Check API health status. |
 
-| # | Checkpoint | Status |
-|---|-----------|--------|
-| 1 | Learn the Data → Semantic Layer | 🔲 |
-| 2 | Find the Right Data → SQL | 🔲 |
-| 3 | Answer with Evidence | 🔲 |
-| 4 | Prove It Works (Eval Harness) | 🔲 |
-| 5 (Bonus) | Clarify & Converse | 🔲 |
-| 6 (Bonus) | Visualise the Answer | 🔲 |
+---
 
-## Environment Variables
+## 🏆 Hackathon Checkpoints
 
-See `.env.example` for the full list. Critical vars:
+- [x] **Checkpoint 1: Learn the Data** (Automated semantic layer generation)
+- [x] **Checkpoint 2: Find the Right Data** (LLM query planning & generation)
+- [x] **Checkpoint 3: Answer with Evidence** (SQL tracing & data explanation)
+- [x] **Checkpoint 4: Prove It Works** (Automated eval harness)
+- [ ] **Checkpoint 5 (Bonus): Clarify & Converse** (Multi-turn conversations)
+- [ ] **Checkpoint 6 (Bonus): Visualise the Answer** (Chart generation)
 
-| Variable | Description |
-|----------|-------------|
-| `ORACLE_HOST` | DB host (20.102.78.61) |
-| `ORACLE_PORT` | DB port (1521) |
-| `ORACLE_SERVICE` | Service name (FREEPDB1) |
-| `ORACLE_USER` | Read-only user (VF_AGENT) |
-| `ORACLE_PASSWORD` | **Never commit!** |
-| `LLM_PROVIDER` | gemini / openai / anthropic / ollama |
-| `LLM_MODEL` | e.g. gemini-2.0-flash |
-| `GEMINI_API_KEY` | API key for Gemini |
-
-## Model Used
-- Primary: `gemini-2.0-flash` (Gemini free tier)
-
-## Evaluation Output
-See `eval_output/` for per-run results including generated SQL, answers, response times, and consistency scores.
+---
+*Built with ❤️ for the DataGenie Engineering Hackathon 2026.*

@@ -49,3 +49,8 @@ htmlcov/
 
 # Jupyter
 .ipynb_checkpoints/
+
+# Data and Scratch
+scratch/
+*.pdf
+*.csv
