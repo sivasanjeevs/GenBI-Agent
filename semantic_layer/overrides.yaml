@@ -69,3 +69,36 @@ tables:
       - term: "Available for sale"
         description: "Offerings that are currently available for sale"
         filter_sql: "OFFER_EDT >= SYSDATE"
+
+  VID.F_LIFECYCLE_KPI:
+    semantics:
+      table_description: "Tracks telecommunication subscription lifecycle key performance indicators. Use this to compute monthly gross adds, disconnections, subscription lifecycle events, and activation/disconnection dates."
+    concepts:
+      - term: "Gross Adds"
+        description: "New subscription additions"
+        filter_sql: "lifecycle_group_cd = 'grossadd'"
+      - term: "Disconnections"
+        description: "Subscription disconnections or cancellations"
+        filter_sql: "lifecycle_group_cd = 'disconnect'"
+
+  VID.D_ICCI_IMSI_SUBS_HIST:
+    semantics:
+      table_description: "Contains subscriber base information, SIM card type attributes, physical SIM vs eSIM, mobile subscriber subscriptions breakdown and mapping."
+    concepts:
+      - term: "Physical SIM"
+        description: "Traditional physical SIM card subscriptions"
+        filter_sql: "esim_ind = 'N'"
+      - term: "eSIM"
+        description: "Subscriptions utilizing embedded SIM technology"
+        filter_sql: "esim_ind = 'Y'"
+
+  VID.D_SUBS_TARIFF_HIST:
+    semantics:
+      table_description: "Tracks the historical changes of tariffs for subscriptions over time."
+    columns:
+      subs_offer_edt:
+        description: "The end date or stop date of the subscription on this tariff."
+        display_name: "Stop Date"
+      subs_offer_sdt:
+        description: "The start date of the subscription on this tariff."
+        display_name: "Start Date"

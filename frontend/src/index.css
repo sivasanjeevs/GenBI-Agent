@@ -1,9 +1,37 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter", "Outfit", ui-sans-serif, system-ui, sans-serif;
+  
+  --color-dg-bg: #09090b;
+  --color-dg-panel: #18181b;
+  --color-dg-primary: #8b5cf6;
+  --color-dg-accent: #3b82f6;
+  --color-dg-glow: rgba(139, 92, 246, 0.4);
 }
 
 body {
-  @apply bg-slate-50 text-slate-900 antialiased;
+  @apply bg-dg-bg text-gray-100 antialiased selection:bg-dg-primary selection:text-white;
+  background-image: 
+    radial-gradient(circle at 15% 50%, rgba(139, 92, 246, 0.1), transparent 25%),
+    radial-gradient(circle at 85% 30%, rgba(59, 130, 246, 0.1), transparent 25%);
+  background-attachment: fixed;
+}
+
+/* Glassmorphism utilities */
+.glass {
+  background: rgba(24, 24, 27, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-glow {
+  box-shadow: 0 0 40px rgba(139, 92, 246, 0.15), inset 0 0 20px rgba(139, 92, 246, 0.05);
+}
+
+.text-gradient {
+  background: linear-gradient(to right, #8b5cf6, #3b82f6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }

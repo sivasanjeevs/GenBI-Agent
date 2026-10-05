@@ -77,7 +77,7 @@ class Settings(BaseSettings):
         description="LLM provider: gemini | openai | anthropic | ollama",
     )
     llm_model: str = Field(
-        "gemini-3.5-flash-lite",
+        "gemini-3.1-pro-preview",
         description="Primary model identifier (LLM_MODEL)",
     )
     llm_model_fast: str = Field(

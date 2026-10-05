@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-05T16:22:21Z",
+  "generated_at": "2026-10-05T17:41:29Z",
   "schemas": [
     "VID",
     "GENAIVF"
@@ -125,63 +125,48 @@
         }
       ],
       "semantics": {
-        "table_description": "V_MNP_ACTUAL tracks actual mobile number portability (MNP) porting transactions between telecom operators. It records the source operator (donor), destination operator (applied), porting execution timestamp, and customer segment classification. All recorded transactions currently represent successfully completed porting events.",
-        "business_entity": "Mobile Number Portability (MNP) Transaction",
-        "grain": "One record per porting event transaction (identified at the timestamp and subscriber segment level)",
+        "table_description": "This table stores actual mobile number portability (MNP) transactions that have completed successfully. It tracks the donor service provider, the applied/recipient service provider, subscriber customer combination types, and the porting due date.",
+        "business_entity": "Number Portability Event",
+        "grain": "One row per successful mobile number porting event.",
         "scd_note": null,
         "concepts": [
           {
-            "term": "Port-In to Vodafone",
-            "filter_sql": "applied_sp_name = 'Vodafone' AND donor_sp_name <> 'Vodafone'",
-            "rationale": "Identifies subscribers migrating from competitor networks (Turkcell or Türk Telekom) to Vodafone."
+            "term": "Successful Port Events",
+            "filter_sql": "num_port_actual_grp_status_desc = 'Success'",
+            "rationale": "The status group description is consistently recorded as Success for all records in the table."
           },
           {
-            "term": "Port-Out from Vodafone",
-            "filter_sql": "donor_sp_name = 'Vodafone' AND applied_sp_name <> 'Vodafone'",
-            "rationale": "Identifies churned subscribers leaving Vodafone to join a competitor network."
-          },
-          {
-            "term": "Postpaid Consumer Porting",
+            "term": "Postpaid Consumer Portings",
             "filter_sql": "subs_cust_comb_type = 'POS CBU'",
-            "rationale": "Filters for transactions involving individual consumer postpaid subscriptions, representing the largest segment in the data."
+            "rationale": "Filtering by POS CBU captures postpaid consumer segment porting transactions which represent the majority of records."
           },
           {
-            "term": "Enterprise Porting",
-            "filter_sql": "subs_cust_comb_type IN ('POS EBU', 'PRE EBU')",
-            "rationale": "Selects business and enterprise customer porting events across both prepaid and postpaid lines."
+            "term": "Vodafone as Recipient Portings",
+            "filter_sql": "applied_sp_name = 'Vodafone'",
+            "rationale": "Applied service provider name indicates Vodafone as the destination operator for incoming ported numbers."
           }
         ],
         "columns": {},
         "counting_warnings": [
-          "No primary key or subscriber identifier is present in this view; counting rows via COUNT(*) represents individual porting event records, but duplicate transactions or multiple porting attempts for the same MSISDN cannot be distinguished without an identifier."
+          "All rows represent successful porting events, so COUNT(*) accurately reflects total successful port transactions."
         ],
         "suggested_joins": []
       },
       "verified_concepts": [
         {
-          "term": "Port-In to Vodafone",
-          "filter_sql": "applied_sp_name = 'Vodafone' AND donor_sp_name <> 'Vodafone'",
-          "rationale": "Identifies subscribers migrating from competitor networks (Turkcell or Türk Telekom) to Vodafone.",
+          "term": "Successful Port Events",
+          "filter_sql": "applied_sp_name = 'Vodafone'",
+          "rationale": "Filtering by applied_sp_name = 'Vodafone' isolates port events where Vodafone is the receiving operator.",
           "confidence": "high",
           "verified": true,
           "count": 3162,
-          "verification_sql": "SELECT COUNT(*) AS cnt FROM GENAIVF.V_MNP_ACTUAL WHERE applied_sp_name = 'Vodafone' AND donor_sp_name <> 'Vodafone'",
-          "repair_attempts": 0
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM GENAIVF.V_MNP_ACTUAL WHERE applied_sp_name = 'Vodafone'",
+          "repair_attempts": 1
         },
         {
-          "term": "Port-Out from Vodafone",
-          "filter_sql": "donor_sp_name = 'Vodafone' AND applied_sp_name <> 'Vodafone'",
-          "rationale": "Identifies churned subscribers leaving Vodafone to join a competitor network.",
-          "confidence": "high",
-          "verified": true,
-          "count": 2626,
-          "verification_sql": "SELECT COUNT(*) AS cnt FROM GENAIVF.V_MNP_ACTUAL WHERE donor_sp_name = 'Vodafone' AND applied_sp_name <> 'Vodafone'",
-          "repair_attempts": 0
-        },
-        {
-          "term": "Postpaid Consumer Porting",
+          "term": "Postpaid Consumer Portings",
           "filter_sql": "subs_cust_comb_type = 'POS CBU'",
-          "rationale": "Filters for transactions involving individual consumer postpaid subscriptions, representing the largest segment in the data.",
+          "rationale": "Filtering by POS CBU captures postpaid consumer segment porting transactions which represent the majority of records.",
           "confidence": "high",
           "verified": true,
           "count": 3687,
@@ -189,13 +174,13 @@
           "repair_attempts": 0
         },
         {
-          "term": "Enterprise Porting",
-          "filter_sql": "subs_cust_comb_type IN ('POS EBU', 'PRE EBU')",
-          "rationale": "Selects business and enterprise customer porting events across both prepaid and postpaid lines.",
+          "term": "Vodafone as Recipient Portings",
+          "filter_sql": "applied_sp_name = 'Vodafone'",
+          "rationale": "Applied service provider name indicates Vodafone as the destination operator for incoming ported numbers.",
           "confidence": "high",
           "verified": true,
-          "count": 785,
-          "verification_sql": "SELECT COUNT(*) AS cnt FROM GENAIVF.V_MNP_ACTUAL WHERE subs_cust_comb_type IN ('POS EBU', 'PRE EBU')",
+          "count": 3162,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM GENAIVF.V_MNP_ACTUAL WHERE applied_sp_name = 'Vodafone'",
           "repair_attempts": 0
         }
       ]
@@ -412,16 +397,65 @@
         }
       ],
       "semantics": {
-        "table_description": "Table GENAIVF.V_MNP_REQUEST (enrichment failed: Primary model gemini-3.8-flash failed and no fallback configured. Error: 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}})",
-        "business_entity": "V_Mnp_Request",
-        "grain": "grain unknown – no obvious key columns",
+        "table_description": "This table stores mobile number portability (MNP) requests, tracking the lifecycle of numbers moving between different service providers. It records the request types, status descriptions, donor and applied operators, and customer segment classifications.",
+        "business_entity": "Number Portability Request",
+        "grain": "One row per number port request transaction.",
         "scd_note": null,
-        "concepts": [],
+        "concepts": [
+          {
+            "term": "Successful Port Requests",
+            "filter_sql": "num_port_request_grp_status_desc = 'Success'",
+            "rationale": "The group status description indicates successfully completed port requests."
+          },
+          {
+            "term": "Port In Requests",
+            "filter_sql": "num_port_request_type_desc = 'Port In'",
+            "rationale": "The request type description specifies numbers porting into the operator network."
+          },
+          {
+            "term": "Postpaid CBU Port Requests",
+            "filter_sql": "subs_cust_comb_type = 'POS CBU'",
+            "rationale": "The subscriber customer combination type represents consumer postpaid accounts."
+          }
+        ],
         "columns": {},
-        "counting_warnings": [],
+        "counting_warnings": [
+          "Ensure counting uses distinct port requests if evaluating unique transaction entities."
+        ],
         "suggested_joins": []
       },
-      "verified_concepts": []
+      "verified_concepts": [
+        {
+          "term": "Successful Port Requests",
+          "filter_sql": "num_port_request_grp_status_desc = 'Success'",
+          "rationale": "The group status description indicates successfully completed port requests.",
+          "confidence": "high",
+          "verified": true,
+          "count": 5788,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM GENAIVF.V_MNP_REQUEST WHERE num_port_request_grp_status_desc = 'Success'",
+          "repair_attempts": 0
+        },
+        {
+          "term": "Port In Requests",
+          "filter_sql": "num_port_request_type_desc = 'Port In'",
+          "rationale": "The request type description specifies numbers porting into the operator network.",
+          "confidence": "high",
+          "verified": true,
+          "count": 4526,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM GENAIVF.V_MNP_REQUEST WHERE num_port_request_type_desc = 'Port In'",
+          "repair_attempts": 0
+        },
+        {
+          "term": "Postpaid CBU Port Requests",
+          "filter_sql": "subs_cust_comb_type = 'POS CBU'",
+          "rationale": "The subscriber customer combination type represents consumer postpaid accounts.",
+          "confidence": "high",
+          "verified": true,
+          "count": 5270,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM GENAIVF.V_MNP_REQUEST WHERE subs_cust_comb_type = 'POS CBU'",
+          "repair_attempts": 0
+        }
+      ]
     },
     {
       "schema_name": "VID",
@@ -547,78 +581,62 @@
         }
       ],
       "semantics": {
-        "table_description": "Historical tracking table capturing customer marketing and business segment classifications over time. It maintains effective date ranges (segment_sdt to segment_edt) for each customer segment assignment sourced from various operational systems such as CRM, ISIS, and campaign rules.",
-        "business_entity": "Customer Segment",
-        "grain": "One record per unified_customer_id and segment effective start date (segment_sdt)",
-        "scd_note": "SCD Type 2 history without explicit current flag; active segments use high end date (4712-12-31 23:59:59).",
+        "table_description": "This table stores historical customer segment assignments for unified customers in the telecom domain, tracking changes in market segments over time along with their source and effective periods. It contains multiple historical segments per customer, enabling time-variant customer segmentation analysis.",
+        "business_entity": "Customer Segment History",
+        "grain": "One row per customer segment history record, identified by unified customer ID and segment start date.",
+        "scd_note": "Despite the table name containing '_HIST' and having effective start and end date columns, the metadata indicates SCD Type 2 is False, likely managed manually or through custom history loading processes.",
         "concepts": [
-          {
-            "term": "Current Active Segment",
-            "filter_sql": "segment_edt >= TO_DATE('4712-01-01', 'YYYY-MM-DD')",
-            "rationale": "Records with future/infinity end dates of 4712-12-31 represent the currently effective customer segment assignment."
-          },
-          {
-            "term": "VIP Segment",
-            "filter_sql": "segment = 'VIP'",
-            "rationale": "Filters for high-value VIP customer segments."
-          },
-          {
-            "term": "Business & Enterprise Customers",
-            "filter_sql": "segment IN ('CORPORATE', 'SME', 'SOHO')",
-            "rationale": "Filters for business and commercial tier accounts including Corporate, SME, and SOHO."
-          },
           {
             "term": "Mass Market Segment",
             "filter_sql": "segment = 'MASS'",
-            "rationale": "Identifies standard mass-market consumer segment profiles."
+            "rationale": "Filters customer segments belonging to the MASS market category, which represents the largest group in the table."
+          },
+          {
+            "term": "CRM Sourced Segments",
+            "filter_sql": "segment_source = 'CRM'",
+            "rationale": "Selects segment records that originated directly from the CRM system source."
+          },
+          {
+            "term": "Current Active Segments",
+            "filter_sql": "segment_edt = TO_DATE('4712-12-31 23:59:59', 'YYYY-MM-DD HH24:MI:SS')",
+            "rationale": "Uses the standard Oracle far-future date to identify currently active segment records."
           }
         ],
         "columns": {},
         "counting_warnings": [
-          "Table contains historical segment transitions; use COUNT(DISTINCT unified_customer_id) rather than COUNT(*) to avoid overcounting customers with multiple historical segments.",
-          "Always apply segment_edt >= TO_DATE('4712-01-01', 'YYYY-MM-DD') or a point-in-time date filter to avoid blending current and historical segment assignments."
+          "Since this table contains multiple historical segments per customer, using COUNT(*) will count historical records rather than unique customers; use COUNT(DISTINCT unified_customer_id) for unique customer counts."
         ],
         "suggested_joins": []
       },
       "verified_concepts": [
         {
-          "term": "Current Active Segment",
-          "filter_sql": "segment_edt >= TO_DATE('4712-01-01', 'YYYY-MM-DD')",
-          "rationale": "Records with future/infinity end dates of 4712-12-31 represent the currently effective customer segment assignment.",
-          "confidence": "high",
-          "verified": true,
-          "count": 6000,
-          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_CONV_SEGMENT_HIST WHERE segment_edt >= TO_DATE('4712-01-01', 'YYYY-MM-DD')",
-          "repair_attempts": 0
-        },
-        {
-          "term": "VIP Segment",
-          "filter_sql": "segment = 'VIP'",
-          "rationale": "Filters for high-value VIP customer segments.",
-          "confidence": "high",
-          "verified": true,
-          "count": 399,
-          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_CONV_SEGMENT_HIST WHERE segment = 'VIP'",
-          "repair_attempts": 0
-        },
-        {
-          "term": "Business & Enterprise Customers",
-          "filter_sql": "segment IN ('CORPORATE', 'SME', 'SOHO')",
-          "rationale": "Filters for business and commercial tier accounts including Corporate, SME, and SOHO.",
-          "confidence": "high",
-          "verified": true,
-          "count": 3336,
-          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_CONV_SEGMENT_HIST WHERE segment IN ('CORPORATE', 'SME', 'SOHO')",
-          "repair_attempts": 0
-        },
-        {
           "term": "Mass Market Segment",
           "filter_sql": "segment = 'MASS'",
-          "rationale": "Identifies standard mass-market consumer segment profiles.",
+          "rationale": "Filters customer segments belonging to the MASS market category, which represents the largest group in the table.",
           "confidence": "high",
           "verified": true,
           "count": 5615,
           "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_CONV_SEGMENT_HIST WHERE segment = 'MASS'",
+          "repair_attempts": 0
+        },
+        {
+          "term": "CRM Sourced Segments",
+          "filter_sql": "segment_source = 'CRM'",
+          "rationale": "Selects segment records that originated directly from the CRM system source.",
+          "confidence": "high",
+          "verified": true,
+          "count": 2413,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_CONV_SEGMENT_HIST WHERE segment_source = 'CRM'",
+          "repair_attempts": 0
+        },
+        {
+          "term": "Current Active Segments",
+          "filter_sql": "segment_edt = TO_DATE('4712-12-31 23:59:59', 'YYYY-MM-DD HH24:MI:SS')",
+          "rationale": "Uses the standard Oracle far-future date to identify currently active segment records.",
+          "confidence": "high",
+          "verified": true,
+          "count": 6000,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_CONV_SEGMENT_HIST WHERE segment_edt = TO_DATE('4712-12-31 23:59:59', 'YYYY-MM-DD HH24:MI:SS')",
           "repair_attempts": 0
         }
       ]
@@ -708,53 +726,33 @@
         }
       ],
       "semantics": {
-        "table_description": "The D_CUSTOMER dimension table stores customer profile information, categorizing accounts into individual and corporate classifications. It maintains historical tracking of customer attributes over time using effective validity dates (cust_sdt and cust_edt).",
+        "table_description": "This dimension table stores customer demographic and lifecycle details within the telecom database, including customer type and profile creation/expiration timelines. It tracks customer records across different customer identifiers and classifications.",
         "business_entity": "Customer",
-        "grain": "One record per customer (cust_id) per validity period defined by cust_sdt and cust_edt",
-        "scd_note": "SCD Type 2 table using cust_sdt as the effective start date and cust_edt as the expiration date, with current records represented by the high date '4712-12-31 23:59:59'.",
+        "grain": "Each row represents a customer record defined by cust_id, unified_customer_id, and cust_type_cd.",
+        "scd_note": null,
         "concepts": [
-          {
-            "term": "Current Customer Records",
-            "filter_sql": "cust_edt = TO_DATE('4712-12-31 23:59:59', 'YYYY-MM-DD HH24:MI:SS')",
-            "rationale": "Identifies currently active customer version records using Oracle high date 4712-12-31."
-          },
           {
             "term": "Individual Customers",
             "filter_sql": "cust_type_cd = 'Individual'",
-            "rationale": "Filters for individual retail consumer accounts, accounting for 6,676 records."
+            "rationale": "The cust_type_cd column identifies individual residential customers with the value 'Individual'."
           },
           {
             "term": "Corporate Customers",
             "filter_sql": "cust_type_cd = 'Corporate'",
-            "rationale": "Filters for business and corporate accounts, accounting for 1,090 records."
-          },
-          {
-            "term": "Current Individual Customers",
-            "filter_sql": "cust_type_cd = 'Individual' AND cust_edt = TO_DATE('4712-12-31 23:59:59', 'YYYY-MM-DD HH24:MI:SS')",
-            "rationale": "Combines individual customer classification with the active SCD Type 2 record validity filter."
+            "rationale": "The cust_type_cd column identifies corporate business customers with the value 'Corporate'."
           }
         ],
         "columns": {},
         "counting_warnings": [
-          "Table contains historical SCD Type 2 records (7,766 total rows vs 6,000 distinct cust_id); always use COUNT(DISTINCT cust_id) or filter on current cust_edt to avoid double-counting customers."
+          "Use COUNT(DISTINCT cust_id) or COUNT(DISTINCT unified_customer_id) to accurately count unique customers, as rows may represent historical or multi-type records."
         ],
         "suggested_joins": []
       },
       "verified_concepts": [
         {
-          "term": "Current Customer Records",
-          "filter_sql": "cust_edt = TO_DATE('4712-12-31 23:59:59', 'YYYY-MM-DD HH24:MI:SS')",
-          "rationale": "Identifies currently active customer version records using Oracle high date 4712-12-31.",
-          "confidence": "high",
-          "verified": true,
-          "count": 5461,
-          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_CUSTOMER WHERE cust_edt = TO_DATE('4712-12-31 23:59:59', 'YYYY-MM-DD HH24:MI:SS')",
-          "repair_attempts": 0
-        },
-        {
           "term": "Individual Customers",
           "filter_sql": "cust_type_cd = 'Individual'",
-          "rationale": "Filters for individual retail consumer accounts, accounting for 6,676 records.",
+          "rationale": "The cust_type_cd column identifies individual residential customers with the value 'Individual'.",
           "confidence": "high",
           "verified": true,
           "count": 6676,
@@ -764,21 +762,11 @@
         {
           "term": "Corporate Customers",
           "filter_sql": "cust_type_cd = 'Corporate'",
-          "rationale": "Filters for business and corporate accounts, accounting for 1,090 records.",
+          "rationale": "The cust_type_cd column identifies corporate business customers with the value 'Corporate'.",
           "confidence": "high",
           "verified": true,
           "count": 1090,
           "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_CUSTOMER WHERE cust_type_cd = 'Corporate'",
-          "repair_attempts": 0
-        },
-        {
-          "term": "Current Individual Customers",
-          "filter_sql": "cust_type_cd = 'Individual' AND cust_edt = TO_DATE('4712-12-31 23:59:59', 'YYYY-MM-DD HH24:MI:SS')",
-          "rationale": "Combines individual customer classification with the active SCD Type 2 record validity filter.",
-          "confidence": "high",
-          "verified": true,
-          "count": 4721,
-          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_CUSTOMER WHERE cust_type_cd = 'Individual' AND cust_edt = TO_DATE('4712-12-31 23:59:59', 'YYYY-MM-DD HH24:MI:SS')",
           "repair_attempts": 0
         }
       ]
@@ -2807,16 +2795,66 @@
         }
       ],
       "semantics": {
-        "table_description": "Table VID.D_DEVICE_OFFERING (enrichment failed: Primary model gemini-3.8-flash failed and no fallback configured. Error: 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}})",
-        "business_entity": "D_Device_Offering",
-        "grain": "grain unknown – candidate key columns: (offer_id, offer_num, partnum, product_type_cd, product_sub_type_cd, dev_type_cd, hndst_dev_code, legacy_code, status_cd, eligible_segment_cd, campaign_code, camp_structure_cd, ccb_campaign_cd, addition_short_code, accessory_cd, insurance_code, insurance_type_cd, package_code)",
-        "scd_note": null,
-        "concepts": [],
+        "table_description": "This table stores device offering and campaign details for telecommunication products like handsets, accessories, and modems. It includes pricing, installment amounts, commitment durations, and eligibility criteria tracked over time using Slowly Changing Dimension (SCD Type 2) logic.",
+        "business_entity": "Device Offering",
+        "grain": "One row per offer version identified by offer_id, offer_num, and partnum across SCD effective timeframes.",
+        "scd_note": "SCD Type 2 table using brightstar_start_dt and brightstar_end_dt for effective tracking.",
+        "concepts": [
+          {
+            "term": "Active Device Offerings",
+            "filter_sql": "status_cd = 'Active' AND brightstar_end_dt = TO_DATE('4712-12-31 23:59:59', 'YYYY-MM-DD HH24:MI:SS')",
+            "rationale": "STATUS_CD = 'Active' and the max end date represent currently active device offerings."
+          },
+          {
+            "term": "Postpaid Handset Offerings",
+            "filter_sql": "prepos_eligibility = 'POSTPAID' AND product_type_cd = 'HANDSET'",
+            "rationale": "PREPOS_ELIGIBILITY equals 'POSTPAID' and PRODUCT_TYPE_CD equals 'HANDSET' isolates handset offers for postpaid subscribers."
+          },
+          {
+            "term": "36-Month Commitment Leasings",
+            "filter_sql": "commitment_dur = 36 AND camp_structure_cd = 'LEASING'",
+            "rationale": "COMMITMENT_DUR = 36 and CAMP_STRUCTURE_CD = 'LEASING' filter for long-term device leasing options."
+          }
+        ],
         "columns": {},
-        "counting_warnings": [],
+        "counting_warnings": [
+          "Use COUNT(DISTINCT offer_id) or COUNT(DISTINCT partnum) to avoid duplicate counts across SCD history versions.",
+          "Filter by brightstar_end_dt = TO_DATE('4712-12-31 23:59:59', 'YYYY-MM-DD HH24:MI:SS') when querying current active records to prevent historical duplication."
+        ],
         "suggested_joins": []
       },
-      "verified_concepts": []
+      "verified_concepts": [
+        {
+          "term": "Active Device Offerings",
+          "filter_sql": "status_cd = 'Active' AND brightstar_end_dt = TO_DATE('4712-12-31 23:59:59', 'YYYY-MM-DD HH24:MI:SS')",
+          "rationale": "STATUS_CD = 'Active' and the max end date represent currently active device offerings.",
+          "confidence": "high",
+          "verified": true,
+          "count": 131,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_DEVICE_OFFERING WHERE status_cd = 'Active' AND brightstar_end_dt = TO_DATE('4712-12-31 23:59:59', 'YYYY-MM-DD HH24:MI:SS')",
+          "repair_attempts": 0
+        },
+        {
+          "term": "Postpaid Handset Offerings",
+          "filter_sql": "prepos_eligibility = 'POSTPAID' AND product_type_cd = 'HANDSET'",
+          "rationale": "PREPOS_ELIGIBILITY equals 'POSTPAID' and PRODUCT_TYPE_CD equals 'HANDSET' isolates handset offers for postpaid subscribers.",
+          "confidence": "high",
+          "verified": true,
+          "count": 140,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_DEVICE_OFFERING WHERE prepos_eligibility = 'POSTPAID' AND product_type_cd = 'HANDSET'",
+          "repair_attempts": 0
+        },
+        {
+          "term": "36-Month Commitment Leasings",
+          "filter_sql": "commitment_dur = 36 AND camp_structure_cd = 'LEASING'",
+          "rationale": "COMMITMENT_DUR = 36 and CAMP_STRUCTURE_CD = 'LEASING' filter for long-term device leasing options.",
+          "confidence": "high",
+          "verified": true,
+          "count": 14,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_DEVICE_OFFERING WHERE commitment_dur = 36 AND camp_structure_cd = 'LEASING'",
+          "repair_attempts": 0
+        }
+      ]
     },
     {
       "schema_name": "VID",
@@ -3184,16 +3222,80 @@
         }
       ],
       "semantics": {
-        "table_description": "Table VID.D_DEVICE_TYPE (enrichment failed: Primary model gemini-3.8-flash failed and no fallback configured. Error: 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}})",
-        "business_entity": "D_Device_Type",
-        "grain": "grain unknown – candidate key columns: (device_type_id)",
-        "scd_note": null,
-        "concepts": [],
+        "table_description": "This table stores dimensional attributes for various telecommunication device types and models, including their equipment category, technology generation, and feature indicators such as 4G and smartphone capabilities. It tracks historical versions of device specifications over time using start and end date timestamps.",
+        "business_entity": "Device Type",
+        "grain": "Each row represents a specific version of a device type identified by device_type_id and its effective date range.",
+        "scd_note": "SCD Type 2 maintained using device_type_sdt and device_type_edt.",
+        "concepts": [
+          {
+            "term": "4G Capable Devices",
+            "filter_sql": "device_type_4g_ind = 'Y'",
+            "rationale": "device_type_4g_ind equals 'Y' indicates devices that support 4G technology."
+          },
+          {
+            "term": "Smartphones",
+            "filter_sql": "device_type_smart_phone_ind = 'Y'",
+            "rationale": "device_type_smart_phone_ind equals 'Y' isolates devices classified as smartphones."
+          },
+          {
+            "term": "Mobile Broadband Devices",
+            "filter_sql": "device_type_mob_broadband_ind = 'Y'",
+            "rationale": "device_type_mob_broadband_ind equals 'Y' filters for devices enabled with mobile broadband connectivity."
+          },
+          {
+            "term": "Current Device Types",
+            "filter_sql": "device_type_edt = TO_DATE('4712-12-31 23:59:59', 'YYYY-MM-DD HH24:MI:SS')",
+            "rationale": "An end date of 4712-12-31 represents the currently active record for the device type in the SCD dimension."
+          }
+        ],
         "columns": {},
-        "counting_warnings": [],
+        "counting_warnings": [
+          "Use COUNT(DISTINCT device_type_id) when counting unique device types, as device_type_id can appear multiple times across different historical SCD versions."
+        ],
         "suggested_joins": []
       },
-      "verified_concepts": []
+      "verified_concepts": [
+        {
+          "term": "4G Capable Devices",
+          "filter_sql": "device_type_4g_ind = 'Y'",
+          "rationale": "device_type_4g_ind equals 'Y' indicates devices that support 4G technology.",
+          "confidence": "high",
+          "verified": true,
+          "count": 46,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_DEVICE_TYPE WHERE device_type_4g_ind = 'Y'",
+          "repair_attempts": 0
+        },
+        {
+          "term": "Smartphones",
+          "filter_sql": "device_type_smart_phone_ind = 'Y'",
+          "rationale": "device_type_smart_phone_ind equals 'Y' isolates devices classified as smartphones.",
+          "confidence": "high",
+          "verified": true,
+          "count": 27,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_DEVICE_TYPE WHERE device_type_smart_phone_ind = 'Y'",
+          "repair_attempts": 0
+        },
+        {
+          "term": "Mobile Broadband Devices",
+          "filter_sql": "device_type_mob_broadband_ind = 'Y'",
+          "rationale": "device_type_mob_broadband_ind equals 'Y' filters for devices enabled with mobile broadband connectivity.",
+          "confidence": "high",
+          "verified": true,
+          "count": 19,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_DEVICE_TYPE WHERE device_type_mob_broadband_ind = 'Y'",
+          "repair_attempts": 0
+        },
+        {
+          "term": "Current Device Types",
+          "filter_sql": "device_type_edt = TO_DATE('4712-12-31 23:59:59', 'YYYY-MM-DD HH24:MI:SS')",
+          "rationale": "An end date of 4712-12-31 represents the currently active record for the device type in the SCD dimension.",
+          "confidence": "high",
+          "verified": true,
+          "count": 39,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_DEVICE_TYPE WHERE device_type_edt = TO_DATE('4712-12-31 23:59:59', 'YYYY-MM-DD HH24:MI:SS')",
+          "repair_attempts": 0
+        }
+      ]
     },
     {
       "schema_name": "VID",
@@ -3280,16 +3382,51 @@
         }
       ],
       "semantics": {
-        "table_description": "Table VID.D_ICCI_IMSI_SUBS_HIST (enrichment failed: Primary model gemini-3.8-flash failed and no fallback configured. Error: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-3.8-flash\\nPlease retry in 7h40m24.832234916s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-3.8-flash'}, 'quotaValue': '20'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '27624s'}]}})",
-        "business_entity": "D_Icci_Imsi_Subs_Hist",
-        "grain": "grain unknown – candidate key columns: (subscription_id)",
-        "scd_note": null,
-        "concepts": [],
+        "table_description": "This table tracks the historical associations between SIM cards (ICCIs) and subscriptions within the telecom network, including effective and expiry timestamps for each mapping. It also captures attributes like whether the subscriber is using an eSIM.",
+        "business_entity": "Subscriber SIM Mapping History",
+        "grain": "One row per ICCI (SIM card) and subscription history record, uniquely identified by ICCI.",
+        "scd_note": "Contains start and end dates (icci_imsi_subs_sdt and icci_imsi_subs_edt) representing historical validity periods.",
+        "concepts": [
+          {
+            "term": "eSIM Subscriptions",
+            "filter_sql": "esim_ind = 'Y'",
+            "rationale": "The esim_ind column equals 'Y' for subscriptions utilizing embedded SIM technology."
+          },
+          {
+            "term": "Physical SIM Subscriptions",
+            "filter_sql": "esim_ind = 'N'",
+            "rationale": "The esim_ind column equals 'N' for traditional physical SIM card subscriptions."
+          }
+        ],
         "columns": {},
-        "counting_warnings": [],
+        "counting_warnings": [
+          "Use COUNT(DISTINCT icci) when counting unique physical SIMs or ICCIs, as subscription_id can have multiple history records.",
+          "Use COUNT(DISTINCT subscription_id) to count unique subscriptions since subscription_id has fewer distinct values than rows."
+        ],
         "suggested_joins": []
       },
-      "verified_concepts": []
+      "verified_concepts": [
+        {
+          "term": "eSIM Subscriptions",
+          "filter_sql": "esim_ind = 'Y'",
+          "rationale": "The esim_ind column equals 'Y' for subscriptions utilizing embedded SIM technology.",
+          "confidence": "high",
+          "verified": true,
+          "count": 1208,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_ICCI_IMSI_SUBS_HIST WHERE esim_ind = 'Y'",
+          "repair_attempts": 0
+        },
+        {
+          "term": "Physical SIM Subscriptions",
+          "filter_sql": "esim_ind = 'N'",
+          "rationale": "The esim_ind column equals 'N' for traditional physical SIM card subscriptions.",
+          "confidence": "high",
+          "verified": true,
+          "count": 10554,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_ICCI_IMSI_SUBS_HIST WHERE esim_ind = 'N'",
+          "repair_attempts": 0
+        }
+      ]
     },
     {
       "schema_name": "VID",
@@ -3734,16 +3871,65 @@
         }
       ],
       "semantics": {
-        "table_description": "Table VID.D_SHOP (enrichment failed: Primary model gemini-3.8-flash failed and no fallback configured. Error: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-3.8-flash\\nPlease retry in 7h40m13.656225972s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-3.8-flash'}, 'quotaValue': '20'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '27613s'}]}})",
-        "business_entity": "D_Shop",
-        "grain": "grain unknown – candidate key columns: (shop_id, shop_num, shop_region_id, shop_type_id)",
-        "scd_note": null,
-        "concepts": [],
+        "table_description": "This table represents retail shops and dealer networks, capturing their operational status, geographic location details, management history, and lifecycle status such as activation or cancellation reasons. It functions as a Slowly Changing Dimension supporting historical tracking of shop attributes over time.",
+        "business_entity": "Shop",
+        "grain": "shop_id, shop_sdt",
+        "scd_note": "Contains effective and expiry dates (shop_sdt and shop_edt), indicating that historical changes to shop records are tracked.",
+        "concepts": [
+          {
+            "term": "Active Shops",
+            "filter_sql": "shop_status = 'Active' AND shop_edt = TO_DATE('4712-12-31 23:59:59', 'YYYY-MM-DD HH24:MI:SS')",
+            "rationale": "shop_status = 'Active' indicates currently operating shops, combined with the maximum expiry date for the latest record version."
+          },
+          {
+            "term": "Closed Shops",
+            "filter_sql": "shop_status = 'Closed'",
+            "rationale": "shop_status = 'Closed' specifically isolates retail locations that have permanently ceased operations."
+          },
+          {
+            "term": "Suspended Shops",
+            "filter_sql": "shop_status = 'Suspended'",
+            "rationale": "shop_status = 'Suspended' captures shops that are temporarily inactive or under administrative suspension."
+          }
+        ],
         "columns": {},
-        "counting_warnings": [],
+        "counting_warnings": [
+          "This table can contain multiple history records per shop due to SCD tracking; use shop_edt = TO_DATE('4712-12-31 23:59:59', 'YYYY-MM-DD HH24:MI:SS') or COUNT(DISTINCT shop_id) to count unique active shops accurately."
+        ],
         "suggested_joins": []
       },
-      "verified_concepts": []
+      "verified_concepts": [
+        {
+          "term": "Active Shops",
+          "filter_sql": "shop_status = 'Active' AND shop_edt = TO_DATE('4712-12-31 23:59:59', 'YYYY-MM-DD HH24:MI:SS')",
+          "rationale": "shop_status = 'Active' indicates currently operating shops, combined with the maximum expiry date for the latest record version.",
+          "confidence": "high",
+          "verified": true,
+          "count": 214,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_SHOP WHERE shop_status = 'Active' AND shop_edt = TO_DATE('4712-12-31 23:59:59', 'YYYY-MM-DD HH24:MI:SS')",
+          "repair_attempts": 0
+        },
+        {
+          "term": "Closed Shops",
+          "filter_sql": "shop_status = 'Closed'",
+          "rationale": "shop_status = 'Closed' specifically isolates retail locations that have permanently ceased operations.",
+          "confidence": "high",
+          "verified": true,
+          "count": 28,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_SHOP WHERE shop_status = 'Closed'",
+          "repair_attempts": 0
+        },
+        {
+          "term": "Suspended Shops",
+          "filter_sql": "shop_status = 'Suspended'",
+          "rationale": "shop_status = 'Suspended' captures shops that are temporarily inactive or under administrative suspension.",
+          "confidence": "high",
+          "verified": true,
+          "count": 20,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_SHOP WHERE shop_status = 'Suspended'",
+          "repair_attempts": 0
+        }
+      ]
     },
     {
       "schema_name": "VID",
@@ -3820,16 +4006,65 @@
         }
       ],
       "semantics": {
-        "table_description": "Table VID.D_SIMCARD (enrichment failed: Primary model gemini-3.8-flash failed and no fallback configured. Error: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-3.8-flash\\nPlease retry in 7h40m2.980439666s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-3.8-flash'}, 'quotaValue': '20'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '27602s'}]}})",
-        "business_entity": "D_Simcard",
-        "grain": "grain unknown – no obvious key columns",
-        "scd_note": null,
-        "concepts": [],
+        "table_description": "The VID.D_SIMCARD table contains dimension data regarding SIM card inventory and characteristics, including ICCI identifiers, effective and expiry timestamps, and technology types. It tracks the lifecycle and technology generation associated with specific SIM cards in the telecom network.",
+        "business_entity": "SIM Card",
+        "grain": "Each row represents a SIM card instance or historical version identified by ICCI and its effective period timestamps.",
+        "scd_note": "Although SCD flags are not explicitly defined, the presence of effective and expiry date columns (icci_sdt and icci_edt) indicates history tracking for SIM cards.",
+        "concepts": [
+          {
+            "term": "5G SIM Cards",
+            "filter_sql": "simcard_type_tech = '5G'",
+            "rationale": "SIM cards utilizing 5G network technology can be isolated by filtering for simcard_type_tech equal to 5G."
+          },
+          {
+            "term": "4G SIM Cards",
+            "filter_sql": "simcard_type_tech = '4G'",
+            "rationale": "SIM cards utilizing 4G network technology can be isolated by filtering for simcard_type_tech equal to 4G."
+          },
+          {
+            "term": "Currently Active SIM Records",
+            "filter_sql": "icci_edt >= TO_DATE('4712-12-31', 'YYYY-MM-DD')",
+            "rationale": "Oracle infinity dates like 4712-12-31 in the expiry column signify currently active or open-ended SIM card records."
+          }
+        ],
         "columns": {},
-        "counting_warnings": [],
+        "counting_warnings": [
+          "Use COUNT(DISTINCT icci) when counting unique physical SIM cards because the table contains historical or multiple entries per ICCI."
+        ],
         "suggested_joins": []
       },
-      "verified_concepts": []
+      "verified_concepts": [
+        {
+          "term": "5G SIM Cards",
+          "filter_sql": "simcard_type_tech = '5G'",
+          "rationale": "SIM cards utilizing 5G network technology can be isolated by filtering for simcard_type_tech equal to 5G.",
+          "confidence": "high",
+          "verified": true,
+          "count": 3551,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_SIMCARD WHERE simcard_type_tech = '5G'",
+          "repair_attempts": 0
+        },
+        {
+          "term": "4G SIM Cards",
+          "filter_sql": "simcard_type_tech = '4G'",
+          "rationale": "SIM cards utilizing 4G network technology can be isolated by filtering for simcard_type_tech equal to 4G.",
+          "confidence": "high",
+          "verified": true,
+          "count": 10478,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_SIMCARD WHERE simcard_type_tech = '4G'",
+          "repair_attempts": 0
+        },
+        {
+          "term": "Currently Active SIM Records",
+          "filter_sql": "icci_edt >= TO_DATE('4712-12-31', 'YYYY-MM-DD')",
+          "rationale": "Oracle infinity dates like 4712-12-31 in the expiry column signify currently active or open-ended SIM card records.",
+          "confidence": "high",
+          "verified": true,
+          "count": 8908,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_SIMCARD WHERE icci_edt >= TO_DATE('4712-12-31', 'YYYY-MM-DD')",
+          "repair_attempts": 0
+        }
+      ]
     },
     {
       "schema_name": "VID",
@@ -3967,16 +4202,65 @@
         }
       ],
       "semantics": {
-        "table_description": "Table VID.D_STATUS (enrichment failed: Primary model gemini-3.8-flash failed and no fallback configured. Error: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-3.8-flash\\nPlease retry in 7h39m52.167877765s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-3.8-flash'}, 'quotaValue': '20'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '27592s'}]}})",
-        "business_entity": "D_Status",
-        "grain": "one row per (status_id) [inferred key]",
+        "table_description": "This dimension table stores various status definitions and descriptions used across the telecom domain. It contains indicators identifying whether a specific status represents a foundational base status.",
+        "business_entity": "Status",
+        "grain": "one row per status_id",
         "scd_note": null,
-        "concepts": [],
+        "concepts": [
+          {
+            "term": "Active Status",
+            "filter_sql": "status_desc = 'Active'",
+            "rationale": "STATUS_DESC='Active' designates the operational active state in the status dimension."
+          },
+          {
+            "term": "Base Status Indicator",
+            "filter_sql": "vftr_base_ind = 'Y'",
+            "rationale": "VFTR_BASE_IND='Y' identifies statuses that contribute to the base population."
+          },
+          {
+            "term": "Suspended Status",
+            "filter_sql": "status_desc = 'Suspend'",
+            "rationale": "STATUS_DESC='Suspend' represents the suspended state within the status classification."
+          }
+        ],
         "columns": {},
-        "counting_warnings": [],
+        "counting_warnings": [
+          "Use COUNT(DISTINCT status_id) when counting statuses to ensure proper cardinality handling."
+        ],
         "suggested_joins": []
       },
-      "verified_concepts": []
+      "verified_concepts": [
+        {
+          "term": "Active Status",
+          "filter_sql": "status_desc = 'Active'",
+          "rationale": "STATUS_DESC='Active' designates the operational active state in the status dimension.",
+          "confidence": "high",
+          "verified": true,
+          "count": 1,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_STATUS WHERE status_desc = 'Active'",
+          "repair_attempts": 0
+        },
+        {
+          "term": "Base Status Indicator",
+          "filter_sql": "vftr_base_ind = 'Y'",
+          "rationale": "VFTR_BASE_IND='Y' identifies statuses that contribute to the base population.",
+          "confidence": "high",
+          "verified": true,
+          "count": 4,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_STATUS WHERE vftr_base_ind = 'Y'",
+          "repair_attempts": 0
+        },
+        {
+          "term": "Suspended Status",
+          "filter_sql": "status_desc = 'Suspend'",
+          "rationale": "STATUS_DESC='Suspend' represents the suspended state within the status classification.",
+          "confidence": "high",
+          "verified": true,
+          "count": 1,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_STATUS WHERE status_desc = 'Suspend'",
+          "repair_attempts": 0
+        }
+      ]
     },
     {
       "schema_name": "VID",
@@ -4331,16 +4615,80 @@
         }
       ],
       "semantics": {
-        "table_description": "Table VID.D_SUBSCRIPTION_EXTENSION (enrichment failed: Primary model gemini-3.8-flash failed and no fallback configured. Error: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-3.8-flash\\nPlease retry in 7h39m41.09827777s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-3.8-flash'}, 'quotaValue': '20'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '27581s'}]}})",
-        "business_entity": "D_Subscription_Extension",
-        "grain": "grain unknown – candidate key columns: (subscription_id, cust_id, cust_type_cd, cust_displayed_type_cd, lob_cd, org_segment_cd, prev_org_segment_cd, org_segment_chg_reason_cd, prev_org_segment_chg_reason_cd)",
-        "scd_note": null,
-        "concepts": [],
+        "table_description": "The VID.D_SUBSCRIPTION_EXTENSION table stores extended profile and segment attributes for telecom subscriptions, including organization segments, tax/GİB verification indicators, and historical change tracking. It acts as a dimensional extension capturing subscriber classification details across different lines of business.",
+        "business_entity": "Subscription Extension",
+        "grain": "The grain of the table is at the subscription and effective period level, identified by subscription_id combined with extension start and end dates.",
+        "scd_note": "This table behaves like an SCD Type 2 structure tracking historical changes to subscription extensions via effective start date (subs_extension_sdt) and expiry date (subs_extension_edt).",
+        "concepts": [
+          {
+            "term": "Esnaf Subscribers",
+            "filter_sql": "subs_esnaf_ind = 'Y'",
+            "rationale": "Filters subscriptions flagged as belonging to the 'esnaf' (small business artisan) category where subs_esnaf_ind is 'Y'."
+          },
+          {
+            "term": "GİB Verified Subscriptions",
+            "filter_sql": "subs_gib_verification_ind = 'Y'",
+            "rationale": "Selects subscriptions that have successfully completed GİB (Revenue Administration) verification indicated by 'Y'."
+          },
+          {
+            "term": "Corporate Segment Subscriptions",
+            "filter_sql": "org_segment_cd = 'corporate'",
+            "rationale": "Isolates subscriptions mapped to the corporate organizational segment."
+          },
+          {
+            "term": "Mobile Postpay Subscriptions",
+            "filter_sql": "lob_cd = 'Mobile Postpay'",
+            "rationale": "Filters subscriptions belonging to the Mobile Postpay line of business."
+          }
+        ],
         "columns": {},
-        "counting_warnings": [],
+        "counting_warnings": [
+          "Because subscription history may be recorded across multiple rows per subscription_id, use COUNT(DISTINCT subscription_id) when counting unique subscribers rather than COUNT(*)."
+        ],
         "suggested_joins": []
       },
-      "verified_concepts": []
+      "verified_concepts": [
+        {
+          "term": "Esnaf Subscribers",
+          "filter_sql": "subs_esnaf_ind = 'Y'",
+          "rationale": "Filters subscriptions flagged as belonging to the 'esnaf' (small business artisan) category where subs_esnaf_ind is 'Y'.",
+          "confidence": "high",
+          "verified": true,
+          "count": 1188,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_SUBSCRIPTION_EXTENSION WHERE subs_esnaf_ind = 'Y'",
+          "repair_attempts": 0
+        },
+        {
+          "term": "GİB Verified Subscriptions",
+          "filter_sql": "subs_gib_verification_ind = 'Y'",
+          "rationale": "Selects subscriptions that have successfully completed GİB (Revenue Administration) verification indicated by 'Y'.",
+          "confidence": "high",
+          "verified": true,
+          "count": 2006,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_SUBSCRIPTION_EXTENSION WHERE subs_gib_verification_ind = 'Y'",
+          "repair_attempts": 0
+        },
+        {
+          "term": "Corporate Segment Subscriptions",
+          "filter_sql": "org_segment_cd = 'corporate'",
+          "rationale": "Isolates subscriptions mapped to the corporate organizational segment.",
+          "confidence": "high",
+          "verified": true,
+          "count": 1477,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_SUBSCRIPTION_EXTENSION WHERE org_segment_cd = 'corporate'",
+          "repair_attempts": 0
+        },
+        {
+          "term": "Mobile Postpay Subscriptions",
+          "filter_sql": "lob_cd = 'Mobile Postpay'",
+          "rationale": "Filters subscriptions belonging to the Mobile Postpay line of business.",
+          "confidence": "high",
+          "verified": true,
+          "count": 8421,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_SUBSCRIPTION_EXTENSION WHERE lob_cd = 'Mobile Postpay'",
+          "repair_attempts": 0
+        }
+      ]
     },
     {
       "schema_name": "VID",
@@ -4962,16 +5310,80 @@
         }
       ],
       "semantics": {
-        "table_description": "Table VID.D_SUBS_DEVICE_OFFER_HIST (enrichment failed: Primary model gemini-3.8-flash failed and no fallback configured. Error: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-3.8-flash\\nPlease retry in 7h39m30.278227702s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-3.8-flash'}, 'quotaValue': '20'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '27570s'}]}})",
-        "business_entity": "D_Subs_Device_Offer_Hist",
-        "grain": "one row per (camp_row_id, subscription_id, offer_id, activation_shop_id, orginating_shop_id, channel_id, platform_id, lob_cd, contract_id, contract_status_cd) [inferred key]",
-        "scd_note": null,
-        "concepts": [],
+        "table_description": "This table tracks historical device offers associated with subscriber contracts, including financial terms, device details, and campaign attributes. It maintains a historical record of device installment plans, promotional discounts, and contract statuses for mobile postpay and prepay subscribers.",
+        "business_entity": "Subscriber Device Offer",
+        "grain": "one row per (camp_row_id, subscription_id, offer_id, activation_shop_id, orginating_shop_id, channel_id, platform_id, lob_cd, contract_id, contract_status_cd)",
+        "scd_note": "Not an SCD Type 2 table; uses contract_start_date as an effective date attribute.",
+        "concepts": [
+          {
+            "term": "Active Device Offers",
+            "filter_sql": "contract_status_cd = 'Active'",
+            "rationale": "contract_status_cd equals 'Active' indicates currently ongoing device offers."
+          },
+          {
+            "term": "Cancelled Contracts",
+            "filter_sql": "cancel_ind = 'Y'",
+            "rationale": "cancel_ind equals 'Y' denotes device contracts that have been terminated or cancelled."
+          },
+          {
+            "term": "Buyback Transactions",
+            "filter_sql": "buyback_flag = 'Y'",
+            "rationale": "buyback_flag equals 'Y' identifies records where an old device was traded in under a buyback scheme."
+          },
+          {
+            "term": "Leakage Flagged Offers",
+            "filter_sql": "leakage_flag = 'Y'",
+            "rationale": "leakage_flag equals 'Y' indicates cases flagged for revenue leakage or discrepancy."
+          }
+        ],
         "columns": {},
-        "counting_warnings": [],
+        "counting_warnings": [
+          "Use COUNT(DISTINCT subscription_id) to count unique subscribers rather than COUNT(*), since a subscriber can have multiple offer history rows."
+        ],
         "suggested_joins": []
       },
-      "verified_concepts": []
+      "verified_concepts": [
+        {
+          "term": "Active Device Offers",
+          "filter_sql": "contract_status_cd = 'Active'",
+          "rationale": "contract_status_cd equals 'Active' indicates currently ongoing device offers.",
+          "confidence": "high",
+          "verified": true,
+          "count": 5397,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_SUBS_DEVICE_OFFER_HIST WHERE contract_status_cd = 'Active'",
+          "repair_attempts": 0
+        },
+        {
+          "term": "Cancelled Contracts",
+          "filter_sql": "cancel_ind = 'Y'",
+          "rationale": "cancel_ind equals 'Y' denotes device contracts that have been terminated or cancelled.",
+          "confidence": "high",
+          "verified": true,
+          "count": 173,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_SUBS_DEVICE_OFFER_HIST WHERE cancel_ind = 'Y'",
+          "repair_attempts": 0
+        },
+        {
+          "term": "Buyback Transactions",
+          "filter_sql": "buyback_flag = 'Y'",
+          "rationale": "buyback_flag equals 'Y' identifies records where an old device was traded in under a buyback scheme.",
+          "confidence": "high",
+          "verified": true,
+          "count": 403,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_SUBS_DEVICE_OFFER_HIST WHERE buyback_flag = 'Y'",
+          "repair_attempts": 0
+        },
+        {
+          "term": "Leakage Flagged Offers",
+          "filter_sql": "leakage_flag = 'Y'",
+          "rationale": "leakage_flag equals 'Y' indicates cases flagged for revenue leakage or discrepancy.",
+          "confidence": "high",
+          "verified": true,
+          "count": 2833,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_SUBS_DEVICE_OFFER_HIST WHERE leakage_flag = 'Y'",
+          "repair_attempts": 0
+        }
+      ]
     },
     {
       "schema_name": "VID",
@@ -5421,16 +5833,65 @@
         }
       ],
       "semantics": {
-        "table_description": "Table VID.D_SUBS_TARIFF_HIST (enrichment failed: Primary model gemini-3.8-flash failed and no fallback configured. Error: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-3.8-flash\\nPlease retry in 7h39m19.24885886s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'model': 'gemini-3.8-flash', 'location': 'global'}, 'quotaValue': '20'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '27559s'}]}})",
-        "business_entity": "D_Subs_Tariff_Hist",
-        "grain": "grain unknown – candidate key columns: (subscription_id, offer_id, activation_shop_id, orginating_shop_id, channel_id, platform_id, lob_cd)",
+        "table_description": "This table captures historical subscription tariff assignments for mobile subscribers, detailing activation charges, discounts, and tax amounts. It tracks subscription offer periods alongside shop, channel, and platform attributes.",
+        "business_entity": "Subscription Tariff History",
+        "grain": "One row per subscription tariff history record, uniquely identified by subscription_id, offer_id, activation_shop_id, orginating_shop_id, channel_id, platform_id, and lob_cd.",
         "scd_note": null,
-        "concepts": [],
+        "concepts": [
+          {
+            "term": "Mobile Postpay Offers",
+            "filter_sql": "lob_cd = 'Mobile Postpay'",
+            "rationale": "Filters subscription tariff records specifically for mobile postpay lines of business."
+          },
+          {
+            "term": "Offers With Discounts",
+            "filter_sql": "activation_disco_amt > 0",
+            "rationale": "Selects subscription offers that have a non-zero activation discount amount applied in TL."
+          },
+          {
+            "term": "Zero Fast Discount Rate",
+            "filter_sql": "fast_discount_rate = 0",
+            "rationale": "Isolates subscription records where no fast discount rate has been applied."
+          }
+        ],
         "columns": {},
-        "counting_warnings": [],
+        "counting_warnings": [
+          "Use COUNT(DISTINCT subscription_id) when calculating unique subscriber metrics since subscription records span multiple historical offers."
+        ],
         "suggested_joins": []
       },
-      "verified_concepts": []
+      "verified_concepts": [
+        {
+          "term": "Mobile Postpay Offers",
+          "filter_sql": "lob_cd = 'Mobile Postpay'",
+          "rationale": "Filters subscription tariff records specifically for mobile postpay lines of business.",
+          "confidence": "high",
+          "verified": true,
+          "count": 10176,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_SUBS_TARIFF_HIST WHERE lob_cd = 'Mobile Postpay'",
+          "repair_attempts": 0
+        },
+        {
+          "term": "Offers With Discounts",
+          "filter_sql": "activation_disco_amt > 0",
+          "rationale": "Selects subscription offers that have a non-zero activation discount amount applied in TL.",
+          "confidence": "high",
+          "verified": true,
+          "count": 5552,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_SUBS_TARIFF_HIST WHERE activation_disco_amt > 0",
+          "repair_attempts": 0
+        },
+        {
+          "term": "Zero Fast Discount Rate",
+          "filter_sql": "fast_discount_rate = 0",
+          "rationale": "Isolates subscription records where no fast discount rate has been applied.",
+          "confidence": "high",
+          "verified": true,
+          "count": 8339,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_SUBS_TARIFF_HIST WHERE fast_discount_rate = 0",
+          "repair_attempts": 0
+        }
+      ]
     },
     {
       "schema_name": "VID",
@@ -6496,16 +6957,80 @@
         }
       ],
       "semantics": {
-        "table_description": "Table VID.D_TARIFF (enrichment failed: Primary model gemini-3.8-flash failed and no fallback configured. Error: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-3.8-flash\\nPlease retry in 7h39m8.221503182s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-3.8-flash'}, 'quotaValue': '20'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '27548s'}]}})",
-        "business_entity": "D_Tariff",
-        "grain": "grain unknown – candidate key columns: (offer_id, offer_num, partnum, status_cd, eligible_subs_type_cd, sp_id)",
+        "table_description": "This table stores dimensional data for various telecom tariffs and service offers, including their pricing, eligibility criteria, and product characteristics. It is used to manage and reference tariff details across customer segments and billing systems.",
+        "business_entity": "Tariff",
+        "grain": "One row per tariff offer, identified by offer_id, offer_num, partnum, status_cd, eligible_subs_type_cd, and sp_id.",
         "scd_note": null,
-        "concepts": [],
+        "concepts": [
+          {
+            "term": "Active Tariffs",
+            "filter_sql": "status_cd = 'Active'",
+            "rationale": "STATUS_CD equals 'Active' identifies currently available or operational tariff offers."
+          },
+          {
+            "term": "Postpaid Tariffs",
+            "filter_sql": "prepos_eligibility = 'POSTPAID'",
+            "rationale": "PREPOS_ELIGIBILITY equals 'POSTPAID' isolates tariffs available to postpaid subscribers."
+          },
+          {
+            "term": "Corporate Eligible Tariffs",
+            "filter_sql": "cbuebu_eligibility = 'EBU' OR eligible_subs_type_cd = 'CORPORATE'",
+            "rationale": "Selects tariff offers explicitly restricted or targeted towards enterprise and corporate business units."
+          },
+          {
+            "term": "Digital Tariffs",
+            "filter_sql": "digital_ind = 'Y'",
+            "rationale": "DIGITAL_IND equals 'Y' flags tariff offers that are digitally native or managed through online channels."
+          }
+        ],
         "columns": {},
-        "counting_warnings": [],
+        "counting_warnings": [
+          "Use COUNT(DISTINCT offer_id) instead of COUNT(*) when counting unique tariff offers, as some offer IDs may span multiple configuration rows."
+        ],
         "suggested_joins": []
       },
-      "verified_concepts": []
+      "verified_concepts": [
+        {
+          "term": "Active Tariffs",
+          "filter_sql": "status_cd = 'Active'",
+          "rationale": "STATUS_CD equals 'Active' identifies currently available or operational tariff offers.",
+          "confidence": "high",
+          "verified": true,
+          "count": 34,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_TARIFF WHERE status_cd = 'Active'",
+          "repair_attempts": 0
+        },
+        {
+          "term": "Postpaid Tariffs",
+          "filter_sql": "prepos_eligibility = 'POSTPAID'",
+          "rationale": "PREPOS_ELIGIBILITY equals 'POSTPAID' isolates tariffs available to postpaid subscribers.",
+          "confidence": "high",
+          "verified": true,
+          "count": 35,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_TARIFF WHERE prepos_eligibility = 'POSTPAID'",
+          "repair_attempts": 0
+        },
+        {
+          "term": "Corporate Eligible Tariffs",
+          "filter_sql": "cbuebu_eligibility = 'EBU' OR eligible_subs_type_cd = 'CORPORATE'",
+          "rationale": "Selects tariff offers explicitly restricted or targeted towards enterprise and corporate business units.",
+          "confidence": "high",
+          "verified": true,
+          "count": 6,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_TARIFF WHERE cbuebu_eligibility = 'EBU' OR eligible_subs_type_cd = 'CORPORATE'",
+          "repair_attempts": 0
+        },
+        {
+          "term": "Digital Tariffs",
+          "filter_sql": "digital_ind = 'Y'",
+          "rationale": "DIGITAL_IND equals 'Y' flags tariff offers that are digitally native or managed through online channels.",
+          "confidence": "high",
+          "verified": true,
+          "count": 20,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.D_TARIFF WHERE digital_ind = 'Y'",
+          "repair_attempts": 0
+        }
+      ]
     },
     {
       "schema_name": "VID",
@@ -6976,16 +7501,65 @@
         }
       ],
       "semantics": {
-        "table_description": "Table VID.F_CUSTOMER_D (enrichment failed: Primary model gemini-3.8-flash failed and no fallback configured. Error: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-3.8-flash\\nPlease retry in 7h38m56.562215304s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-3.8-flash'}, 'quotaValue': '20'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '27536s'}]}})",
-        "business_entity": "F_Customer_D",
-        "grain": "grain unknown – candidate key columns: (cust_id, cust_num, cust_last_status_cd, cust_prev_status_cd, cust_last_list_type_cd, cust_market_segment_cd, prev_cust_market_segment_cd, cust_first_displayed_type_cd, cust_last_displayed_type_cd, cust_last_type_cd)",
+        "table_description": "The VID.F_CUSTOMER_D table maintains snapshot records of customer demographics, lifecycle events, tenure, and segmentation attributes over time. It provides a historical daily view of customer accounts, their current and previous statuses, and program eligibility.",
+        "business_entity": "Customer",
+        "grain": "The grain of the table is at the customer by snapshot date level (cust_id, snapshot_dt).",
         "scd_note": null,
-        "concepts": [],
+        "concepts": [
+          {
+            "term": "Active Customers",
+            "filter_sql": "cust_last_status_cd = 'Active'",
+            "rationale": "CUST_LAST_STATUS_CD equals 'Active' to identify customers currently in an active state."
+          },
+          {
+            "term": "CVM Eligible Customers",
+            "filter_sql": "cust_cvm_eligible_ind = 'Y'",
+            "rationale": "CUST_CVM_ELIGIBLE_IND equals 'Y' to target customers eligible for customer value management campaigns."
+          },
+          {
+            "term": "Consumer Segment Customers",
+            "filter_sql": "cust_market_segment_cd = 'Consumer'",
+            "rationale": "CUST_MARKET_SEGMENT_CD equals 'Consumer' to filter residential retail customers."
+          }
+        ],
         "columns": {},
-        "counting_warnings": [],
+        "counting_warnings": [
+          "Since this table is stored at a snapshot grain across multiple snapshot dates, use COUNT(DISTINCT cust_id) when calculating distinct customer metrics to avoid double-counting across dates."
+        ],
         "suggested_joins": []
       },
-      "verified_concepts": []
+      "verified_concepts": [
+        {
+          "term": "Active Customers",
+          "filter_sql": "cust_last_status_cd = 'Active'",
+          "rationale": "CUST_LAST_STATUS_CD equals 'Active' to identify customers currently in an active state.",
+          "confidence": "high",
+          "verified": true,
+          "count": 38101,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.F_CUSTOMER_D WHERE cust_last_status_cd = 'Active'",
+          "repair_attempts": 0
+        },
+        {
+          "term": "CVM Eligible Customers",
+          "filter_sql": "cust_cvm_eligible_ind = 'Y'",
+          "rationale": "CUST_CVM_ELIGIBLE_IND equals 'Y' to target customers eligible for customer value management campaigns.",
+          "confidence": "high",
+          "verified": true,
+          "count": 29302,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.F_CUSTOMER_D WHERE cust_cvm_eligible_ind = 'Y'",
+          "repair_attempts": 0
+        },
+        {
+          "term": "Consumer Segment Customers",
+          "filter_sql": "cust_market_segment_cd = 'Consumer'",
+          "rationale": "CUST_MARKET_SEGMENT_CD equals 'Consumer' to filter residential retail customers.",
+          "confidence": "high",
+          "verified": true,
+          "count": 28651,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.F_CUSTOMER_D WHERE cust_market_segment_cd = 'Consumer'",
+          "repair_attempts": 0
+        }
+      ]
     },
     {
       "schema_name": "VID",
@@ -8067,16 +8641,65 @@
         }
       ],
       "semantics": {
-        "table_description": "Table VID.F_LIFECYCLE_KPI (enrichment failed: Primary model gemini-3.8-flash failed and no fallback configured. Error: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-3.8-flash\\nPlease retry in 7h38m44.317169402s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-3.8-flash'}, 'quotaValue': '20'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '27524s'}]}})",
-        "business_entity": "F_Lifecycle_Kpi",
-        "grain": "one row per (subscription_id, cust_id, lifecycle_group_cd, lifecycle_event_cd, to_main_offer_id, to_cust_market_seg_cd, activation_shop_id, orginating_shop_id, channel_id, platform_id, lob_cd, cust_type_cd) [inferred key]",
-        "scd_note": null,
-        "concepts": [],
+        "table_description": "This table tracks telecommunication subscription lifecycle key performance indicators, capturing transitions such as gross adds, disconnections, migrations, and barrings. It records status and offer changes alongside customer and channel details over specific snapshots and event timestamps.",
+        "business_entity": "Subscription Lifecycle KPI",
+        "grain": "one row per (subscription_id, cust_id, lifecycle_group_cd, lifecycle_event_cd, to_main_offer_id, to_cust_market_seg_cd, activation_shop_id, orginating_shop_id, channel_id, platform_id, lob_cd, cust_type_cd)",
+        "scd_note": "SCD Type 2 tracked using from_main_offer_sdt and to_main_offer_sdt.",
+        "concepts": [
+          {
+            "term": "Gross Add Events",
+            "filter_sql": "lifecycle_group_cd = 'grossadd'",
+            "rationale": "lifecycle_group_cd equals 'grossadd' to isolate new subscriber acquisitions."
+          },
+          {
+            "term": "Mobile Postpay Subscriptions",
+            "filter_sql": "lob_cd = 'Mobile Postpay'",
+            "rationale": "lob_cd equals 'Mobile Postpay' to filter for postpay line of business records."
+          },
+          {
+            "term": "Active Target Status",
+            "filter_sql": "to_status = 'Active'",
+            "rationale": "to_status equals 'Active' represents subscriptions in active operational state after the event."
+          }
+        ],
         "columns": {},
-        "counting_warnings": [],
+        "counting_warnings": [
+          "use COUNT(DISTINCT subscription_id) rather than COUNT(*) when measuring unique subscriber metrics since subscriptions can undergo multiple lifecycle events."
+        ],
         "suggested_joins": []
       },
-      "verified_concepts": []
+      "verified_concepts": [
+        {
+          "term": "Gross Add Events",
+          "filter_sql": "lifecycle_group_cd = 'grossadd'",
+          "rationale": "lifecycle_group_cd equals 'grossadd' to isolate new subscriber acquisitions.",
+          "confidence": "high",
+          "verified": true,
+          "count": 3196,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.F_LIFECYCLE_KPI WHERE lifecycle_group_cd = 'grossadd'",
+          "repair_attempts": 0
+        },
+        {
+          "term": "Mobile Postpay Subscriptions",
+          "filter_sql": "lob_cd = 'Mobile Postpay'",
+          "rationale": "lob_cd equals 'Mobile Postpay' to filter for postpay line of business records.",
+          "confidence": "high",
+          "verified": true,
+          "count": 5155,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.F_LIFECYCLE_KPI WHERE lob_cd = 'Mobile Postpay'",
+          "repair_attempts": 0
+        },
+        {
+          "term": "Active Target Status",
+          "filter_sql": "to_status = 'Active'",
+          "rationale": "to_status equals 'Active' represents subscriptions in active operational state after the event.",
+          "confidence": "high",
+          "verified": true,
+          "count": 4912,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.F_LIFECYCLE_KPI WHERE to_status = 'Active'",
+          "repair_attempts": 0
+        }
+      ]
     },
     {
       "schema_name": "VID",
@@ -9317,16 +9940,81 @@
         }
       ],
       "semantics": {
-        "table_description": "Table VID.F_RATED_MAIN_USAGE_D (enrichment failed: Primary model gemini-3.8-flash failed and no fallback configured. Error: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-3.8-flash\\nPlease retry in 7h38m32.944276717s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'model': 'gemini-3.8-flash', 'location': 'global'}, 'quotaValue': '20'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '27512s'}]}})",
-        "business_entity": "F_Rated_Main_Usage_D",
-        "grain": "grain unknown – candidate key columns: (subscr_id, cust_id, usage_type_cd, bearer_cd, lob_cd, cust_market_segment_cd, cust_displayed_type_cd, device_type_id, primary_offer_id, charged_offer_id, service_id, application_cd, network_direction_cd, on_off_net_cd, roamer_type_cd, roaming_country_id, roaming_partner_id, b_num_sp_id, b_number_country_id, vas_offer_id)",
+        "table_description": "This table stores aggregated daily rated main usage data for subscribers, capturing metrics such as activity counts, durations, charges, and data volumes across voice and data services. It provides detailed breakdowns by network direction, roaming status, bearer technology, and offer associations.",
+        "business_entity": "Subscriber Usage",
+        "grain": "Aggregated daily per subscriber, usage type, bearer, line of business, market segment, customer type, device type, offers, services, applications, network directions, and roaming details.",
         "scd_note": null,
-        "concepts": [],
+        "concepts": [
+          {
+            "term": "International Usage",
+            "filter_sql": "network_international_ind = 'Y'",
+            "rationale": "The network_international_ind column equals 'Y' to identify usage that occurred internationally."
+          },
+          {
+            "term": "Over Usage",
+            "filter_sql": "over_usage_ind = 'Y'",
+            "rationale": "The over_usage_ind column equals 'Y' to flag usage that exceeds the customer's plan allowance."
+          },
+          {
+            "term": "Voice Usage",
+            "filter_sql": "usage_type_cd = 'VOICE'",
+            "rationale": "The usage_type_cd column is set to 'VOICE' for calls and voice-related activities."
+          },
+          {
+            "term": "Data Usage",
+            "filter_sql": "usage_type_cd = 'DATA'",
+            "rationale": "The usage_type_cd column is set to 'DATA' for internet and data session activities."
+          }
+        ],
         "columns": {},
-        "counting_warnings": [],
+        "counting_warnings": [
+          "Use COUNT(DISTINCT subscr_id) when counting unique subscribers, as multiple records exist per subscriber across different usage types, bearers, and dates.",
+          "Use SUM(total_charge) for aggregating revenue rather than COUNT(*)."
+        ],
         "suggested_joins": []
       },
-      "verified_concepts": []
+      "verified_concepts": [
+        {
+          "term": "International Usage",
+          "filter_sql": "network_international_ind = 'Y'",
+          "rationale": "The network_international_ind column equals 'Y' to identify usage that occurred internationally.",
+          "confidence": "high",
+          "verified": true,
+          "count": 1641,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.F_RATED_MAIN_USAGE_D WHERE network_international_ind = 'Y'",
+          "repair_attempts": 0
+        },
+        {
+          "term": "Over Usage",
+          "filter_sql": "over_usage_ind = 'Y'",
+          "rationale": "The over_usage_ind column equals 'Y' to flag usage that exceeds the customer's plan allowance.",
+          "confidence": "high",
+          "verified": true,
+          "count": 4939,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.F_RATED_MAIN_USAGE_D WHERE over_usage_ind = 'Y'",
+          "repair_attempts": 0
+        },
+        {
+          "term": "Voice Usage",
+          "filter_sql": "usage_type_cd = 'VOICE'",
+          "rationale": "The usage_type_cd column is set to 'VOICE' for calls and voice-related activities.",
+          "confidence": "high",
+          "verified": true,
+          "count": 20808,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.F_RATED_MAIN_USAGE_D WHERE usage_type_cd = 'VOICE'",
+          "repair_attempts": 0
+        },
+        {
+          "term": "Data Usage",
+          "filter_sql": "usage_type_cd = 'DATA'",
+          "rationale": "The usage_type_cd column is set to 'DATA' for internet and data session activities.",
+          "confidence": "high",
+          "verified": true,
+          "count": 20808,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.F_RATED_MAIN_USAGE_D WHERE usage_type_cd = 'DATA'",
+          "repair_attempts": 0
+        }
+      ]
     },
     {
       "schema_name": "VID",
@@ -10975,16 +11663,80 @@
         }
       ],
       "semantics": {
-        "table_description": "Table VID.F_SUBSCRIPTION_D (enrichment failed: Primary model gemini-3.8-flash failed and no fallback configured. Error: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-3.8-flash\\nPlease retry in 7h38m21.393479438s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-3.8-flash'}, 'quotaValue': '20'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '27501s'}]}})",
-        "business_entity": "F_Subscription_D",
-        "grain": "grain unknown – candidate key columns: (subscription_id, cust_id, status_id, main_offer_id, prev_main_offer_id, first_main_offer_id, lob_cd, cust_market_segment_cd, activation_shop_id, orginating_shop_id, channel_id, platform_id, bill_acct_id, subs_first_discon_rsn_cd, subs_first_discon_sub_rsn_cd, subs_last_discon_rsn_cd, subs_first_reconnection_rsn_cd, subs_last_reconnection_rsn_cd, hlr_status_cd, first_digital_offering_id, last_digital_offering_id)",
-        "scd_note": null,
-        "concepts": [],
+        "table_description": "This dimension table tracks comprehensive historical and snapshot-level attributes of telecommunications subscriptions, including status details, tenure, offerings, technology capabilities, and lifecycle event timestamps. It is structured as an SCD Type 2 dimension capturing historical changes per subscription across multiple snapshot dates.",
+        "business_entity": "Subscription",
+        "grain": "subscription_id, snapshot_dt",
+        "scd_note": "This table functions as an SCD Type 2 dimension tracked across snapshot dates using subs_digital_start_dt and last_5g_optout_dt.",
+        "concepts": [
+          {
+            "term": "Active Subscriptions",
+            "filter_sql": "status_id = 1",
+            "rationale": "Status ID 1 represents the active subscription state as shown by the highest frequency count in the distribution."
+          },
+          {
+            "term": "Mobile Postpay Subscriptions",
+            "filter_sql": "lob_cd = 'Mobile Postpay'",
+            "rationale": "LOB Code 'Mobile Postpay' filters subscriptions belonging to the postpay line of business segment."
+          },
+          {
+            "term": "5G Opted-In Subscriptions",
+            "filter_sql": "subs_5g_ind = 'Y'",
+            "rationale": "The indicator flag value 'Y' for subs_5g_ind isolates subscribers with active 5G capabilities."
+          },
+          {
+            "term": "Consumer Market Segment",
+            "filter_sql": "cust_market_segment_cd = 'Consumer'",
+            "rationale": "The customer market segment code 'Consumer' filters individual retail subscriber records."
+          }
+        ],
         "columns": {},
-        "counting_warnings": [],
+        "counting_warnings": [
+          "Since this table records snapshots and SCD history, use COUNT(DISTINCT subscription_id) to count unique subscriptions rather than COUNT(*)."
+        ],
         "suggested_joins": []
       },
-      "verified_concepts": []
+      "verified_concepts": [
+        {
+          "term": "Active Subscriptions",
+          "filter_sql": "status_id = 1",
+          "rationale": "Status ID 1 represents the active subscription state as shown by the highest frequency count in the distribution.",
+          "confidence": "high",
+          "verified": true,
+          "count": 49448,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.F_SUBSCRIPTION_D WHERE status_id = 1",
+          "repair_attempts": 0
+        },
+        {
+          "term": "Mobile Postpay Subscriptions",
+          "filter_sql": "lob_cd = 'Mobile Postpay'",
+          "rationale": "LOB Code 'Mobile Postpay' filters subscriptions belonging to the postpay line of business segment.",
+          "confidence": "high",
+          "verified": true,
+          "count": 45682,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.F_SUBSCRIPTION_D WHERE lob_cd = 'Mobile Postpay'",
+          "repair_attempts": 0
+        },
+        {
+          "term": "5G Opted-In Subscriptions",
+          "filter_sql": "subs_5g_ind = 'Y'",
+          "rationale": "The indicator flag value 'Y' for subs_5g_ind isolates subscribers with active 5G capabilities.",
+          "confidence": "high",
+          "verified": true,
+          "count": 18767,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.F_SUBSCRIPTION_D WHERE subs_5g_ind = 'Y'",
+          "repair_attempts": 0
+        },
+        {
+          "term": "Consumer Market Segment",
+          "filter_sql": "cust_market_segment_cd = 'Consumer'",
+          "rationale": "The customer market segment code 'Consumer' filters individual retail subscriber records.",
+          "confidence": "high",
+          "verified": true,
+          "count": 43001,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.F_SUBSCRIPTION_D WHERE cust_market_segment_cd = 'Consumer'",
+          "repair_attempts": 0
+        }
+      ]
     },
     {
       "schema_name": "VID",
@@ -11141,16 +11893,65 @@
         }
       ],
       "semantics": {
-        "table_description": "Table VID.F_SUBSCRIPTION_USAGE_METRIC_D (enrichment failed: Primary model gemini-3.8-flash failed and no fallback configured. Error: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-3.8-flash\\nPlease retry in 7h38m10.669096817s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-3.8-flash'}, 'quotaValue': '20'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '27490s'}]}})",
-        "business_entity": "F_Subscription_Usage_Metric_D",
-        "grain": "grain unknown – candidate key columns: (subscription_id)",
+        "table_description": "This table captures daily subscription-level 5G capability, usage metrics, and device settings snapshots. It stores indicator flags regarding 5G eligibility, potential 5G usage, and device-level 5G configuration states along with their respective timestamps.",
+        "business_entity": "Subscription",
+        "grain": "The grain of the table is per subscription per snapshot date (snapshot_dt, subscription_id).",
         "scd_note": null,
-        "concepts": [],
+        "concepts": [
+          {
+            "term": "5G Eligible Subscriptions",
+            "filter_sql": "is_5g_eligible_ind = 'Y'",
+            "rationale": "Subscriptions marked with 'Y' in the is_5g_eligible_ind column indicate eligibility for 5G network services."
+          },
+          {
+            "term": "Possible 5G Subscriptions",
+            "filter_sql": "possible_5g_ind = 'Y'",
+            "rationale": "Subscriptions with 'Y' in the possible_5g_ind column denote that 5G capability is detected as possible."
+          },
+          {
+            "term": "5G Device Settings Enabled",
+            "filter_sql": "device_5g_settings_ind = 'Y'",
+            "rationale": "Subscriptions where the device_5g_settings_ind is 'Y' show that 5G settings are currently enabled on the device."
+          }
+        ],
         "columns": {},
-        "counting_warnings": [],
+        "counting_warnings": [
+          "Since this is a snapshot table with multiple records per subscription across snapshot dates, use COUNT(DISTINCT subscription_id) when counting unique subscriptions rather than COUNT(*)."
+        ],
         "suggested_joins": []
       },
-      "verified_concepts": []
+      "verified_concepts": [
+        {
+          "term": "5G Eligible Subscriptions",
+          "filter_sql": "is_5g_eligible_ind = 'Y'",
+          "rationale": "Subscriptions marked with 'Y' in the is_5g_eligible_ind column indicate eligibility for 5G network services.",
+          "confidence": "high",
+          "verified": true,
+          "count": 28112,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.F_SUBSCRIPTION_USAGE_METRIC_D WHERE is_5g_eligible_ind = 'Y'",
+          "repair_attempts": 0
+        },
+        {
+          "term": "Possible 5G Subscriptions",
+          "filter_sql": "possible_5g_ind = 'Y'",
+          "rationale": "Subscriptions with 'Y' in the possible_5g_ind column denote that 5G capability is detected as possible.",
+          "confidence": "high",
+          "verified": true,
+          "count": 33446,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.F_SUBSCRIPTION_USAGE_METRIC_D WHERE possible_5g_ind = 'Y'",
+          "repair_attempts": 0
+        },
+        {
+          "term": "5G Device Settings Enabled",
+          "filter_sql": "device_5g_settings_ind = 'Y'",
+          "rationale": "Subscriptions where the device_5g_settings_ind is 'Y' show that 5G settings are currently enabled on the device.",
+          "confidence": "high",
+          "verified": true,
+          "count": 17024,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.F_SUBSCRIPTION_USAGE_METRIC_D WHERE device_5g_settings_ind = 'Y'",
+          "repair_attempts": 0
+        }
+      ]
     },
     {
       "schema_name": "VID",
@@ -12485,16 +13286,65 @@
         }
       ],
       "semantics": {
-        "table_description": "Table VID.F_SUBS_MAF_ANALYSIS_D (enrichment failed: Primary model gemini-3.8-flash failed and no fallback configured. Error: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-3.8-flash\\nPlease retry in 7h37m59.175883513s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'model': 'gemini-3.8-flash', 'location': 'global'}, 'quotaValue': '20'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '27479s'}]}})",
-        "business_entity": "F_Subs_Maf_Analysis_D",
-        "grain": "grain unknown – candidate key columns: (subscription_id, bill_acct_billing_cycle_cd, tariff_offer_id, tariff_offer_partnum, smart_discount_offer_partnum, discount_offer_id)",
-        "scd_note": null,
-        "concepts": [],
+        "table_description": "This table tracks daily subscription analysis information including tariff offers, pricing details, and smart discount metrics for telecom subscribers. It operates as an SCD Type 2 dimension capturing changes over time based on discount start and end dates.",
+        "business_entity": "Subscription",
+        "grain": "Subscription grain defined by subscription_id, bill_acct_billing_cycle_cd, tariff_offer_id, tariff_offer_partnum, smart_discount_offer_partnum, and discount_offer_id across snapshots.",
+        "scd_note": "SCD Type 2 tracked using smart_discount_start_dt as the effective date and smart_discount_end_dt as the expiry date.",
+        "concepts": [
+          {
+            "term": "Voice and Data Subscriptions",
+            "filter_sql": "voice_data_ind = 'Y'",
+            "rationale": "Subscriptions marked with 'Y' indicate that both voice and data services are active on the plan."
+          },
+          {
+            "term": "Postpaid Corporate Business Unit Subscribers",
+            "filter_sql": "subs_cust_comb_type = 'POS CBU'",
+            "rationale": "Filters for postpaid consumer business unit subscriptions based on customer combination type."
+          },
+          {
+            "term": "Subscribers with Smart Discount Contracts",
+            "filter_sql": "nof_smart_contract = 1",
+            "rationale": "Indicates subscriptions that currently have an active smart discount contract associated with them."
+          }
+        ],
         "columns": {},
-        "counting_warnings": [],
+        "counting_warnings": [
+          "Use COUNT(DISTINCT subscription_id) when counting unique subscribers, as the table contains multiple records per subscription due to historical snapshots and multiple tariff or discount offers."
+        ],
         "suggested_joins": []
       },
-      "verified_concepts": []
+      "verified_concepts": [
+        {
+          "term": "Voice and Data Subscriptions",
+          "filter_sql": "voice_data_ind = 'Y'",
+          "rationale": "Subscriptions marked with 'Y' indicate that both voice and data services are active on the plan.",
+          "confidence": "high",
+          "verified": true,
+          "count": 33887,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.F_SUBS_MAF_ANALYSIS_D WHERE voice_data_ind = 'Y'",
+          "repair_attempts": 0
+        },
+        {
+          "term": "Postpaid Corporate Business Unit Subscribers",
+          "filter_sql": "subs_cust_comb_type = 'POS CBU'",
+          "rationale": "Filters for postpaid consumer business unit subscriptions based on customer combination type.",
+          "confidence": "high",
+          "verified": true,
+          "count": 34111,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.F_SUBS_MAF_ANALYSIS_D WHERE subs_cust_comb_type = 'POS CBU'",
+          "repair_attempts": 0
+        },
+        {
+          "term": "Subscribers with Smart Discount Contracts",
+          "filter_sql": "nof_smart_contract = 1",
+          "rationale": "Indicates subscriptions that currently have an active smart discount contract associated with them.",
+          "confidence": "high",
+          "verified": true,
+          "count": 13706,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.F_SUBS_MAF_ANALYSIS_D WHERE nof_smart_contract = 1",
+          "repair_attempts": 0
+        }
+      ]
     },
     {
       "schema_name": "VID",
@@ -13134,17 +13984,81 @@
         }
       ],
       "semantics": {
-        "table_description": "Table VID.VD_OFFERING (enrichment failed: Primary model gemini-3.8-flash failed and no fallback configured. Error: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-3.8-flash\\nPlease retry in 7h37m47.921276547s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'model': 'gemini-3.8-flash', 'location': 'global'}, 'quotaValue': '20'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '27467s'}]}})",
-        "business_entity": "Vd_Offering",
-        "grain": "grain unknown – candidate key columns: (offer_id, offer_num, partnum, offer_subtype_cd, eligible_segment_cd, legacy_code, recurring_type_cd)",
+        "table_description": "This table stores dimensional information about various telecom offerings, including tariffs, devices, add-ons, and campaigns available to customers. It contains pricing, duration, eligibility criteria, and specialized attribute indicators for each offering.",
+        "business_entity": "Offering",
+        "grain": "Each row represents a unique offering identified by offer_id, offer_num, and partnum.",
         "scd_note": null,
-        "concepts": [],
+        "concepts": [
+          {
+            "term": "Data Enabled Offerings",
+            "filter_sql": "data_ind = 'Y'",
+            "rationale": "DATA_IND='Y' indicates offerings that include data capabilities."
+          },
+          {
+            "term": "Recurring Offerings",
+            "filter_sql": "recurring_ind = 'Y'",
+            "rationale": "RECURRING_IND='Y' signifies offerings billed on a recurring cycle such as monthly."
+          },
+          {
+            "term": "Device Offerings",
+            "filter_sql": "offer_subtype_cd = 'DEVICE'",
+            "rationale": "OFFER_SUBTYPE_CD='DEVICE' specifies that the offering is a hardware device campaign."
+          },
+          {
+            "term": "Postpaid Eligible Offerings",
+            "filter_sql": "prepos_eligibility = 'POSTPAID'",
+            "rationale": "PREPOS_ELIGIBILITY='POSTPAID' isolates offerings restricted to postpaid subscriber segments."
+          }
+        ],
         "columns": {},
-        "counting_warnings": [],
+        "counting_warnings": [
+          "Use COUNT(DISTINCT offer_id) when evaluating unique offers since multiple records can exist for different part numbers or subtypes."
+        ],
         "suggested_joins": []
       },
-      "verified_concepts": []
+      "verified_concepts": [
+        {
+          "term": "Data Enabled Offerings",
+          "filter_sql": "data_ind = 'Y'",
+          "rationale": "DATA_IND='Y' indicates offerings that include data capabilities.",
+          "confidence": "high",
+          "verified": true,
+          "count": 45,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.VD_OFFERING WHERE data_ind = 'Y'",
+          "repair_attempts": 0
+        },
+        {
+          "term": "Recurring Offerings",
+          "filter_sql": "recurring_ind = 'Y'",
+          "rationale": "RECURRING_IND='Y' signifies offerings billed on a recurring cycle such as monthly.",
+          "confidence": "high",
+          "verified": true,
+          "count": 50,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.VD_OFFERING WHERE recurring_ind = 'Y'",
+          "repair_attempts": 0
+        },
+        {
+          "term": "Device Offerings",
+          "filter_sql": "offer_subtype_cd = 'DEVICE'",
+          "rationale": "OFFER_SUBTYPE_CD='DEVICE' specifies that the offering is a hardware device campaign.",
+          "confidence": "high",
+          "verified": true,
+          "count": 186,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.VD_OFFERING WHERE offer_subtype_cd = 'DEVICE'",
+          "repair_attempts": 0
+        },
+        {
+          "term": "Postpaid Eligible Offerings",
+          "filter_sql": "prepos_eligibility = 'POSTPAID'",
+          "rationale": "PREPOS_ELIGIBILITY='POSTPAID' isolates offerings restricted to postpaid subscriber segments.",
+          "confidence": "high",
+          "verified": true,
+          "count": 183,
+          "verification_sql": "SELECT COUNT(*) AS cnt FROM VID.VD_OFFERING WHERE prepos_eligibility = 'POSTPAID'",
+          "repair_attempts": 0
+        }
+      ]
     }
   ],
-  "version": "5444797cf42d8b7b"
+  "version": "b2f101cf4c0f12a4"
 }
