@@ -1,8 +1,32 @@
 [
   {
     "id": "1",
-    "question": "What is 1 + 1?",
-    "difficulty": "easy",
-    "expected_data": [{"val": 2}]
+    "question": "List the active shops in Istanbul with their shop number, district and sales manager.",
+    "difficulty": "Easy"
+  },
+  {
+    "id": "2",
+    "question": "How many phone campaigns are available for sale, by device?",
+    "difficulty": "Easy"
+  },
+  {
+    "id": "3",
+    "question": "Which customer segment had the highest number of unique customers assigned in June 2025?",
+    "difficulty": "Medium"
+  },
+  {
+    "id": "4",
+    "question": "Compare monthly gross adds and disconnections for July and August 2026, showing the month-over-month change in each.",
+    "difficulty": "Medium"
+  },
+  {
+    "id": "5",
+    "question": "As of 28 August 2026, how many subscribers in the mobile base used a physical SIM and how many used an eSIM?",
+    "difficulty": "Hard"
+  },
+  {
+    "id": "6",
+    "question": "For every disconnection in August 2026, which tariff was the subscription on at the moment of the event? Count disconnections per tariff.",
+    "difficulty": "Hard"
   }
 ]

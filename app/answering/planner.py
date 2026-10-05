@@ -42,6 +42,8 @@ from app.llm import call_llm_structured
 class QueryPlan(BaseModel):
     """Step-by-step reasoning output from the planning LLM call."""
     answerable: bool = Field(..., description="Can this question be answered from the available data?")
+    needs_clarification: bool = Field(False, description="Is the request genuinely ambiguous and needs user clarification?")
+    clarifying_question: str | None = Field(None, description="If needs_clarification is true, the question to ask the user.")
     unanswerable_reason: str | None = Field(
         None,
         description="If answerable=false, explain why.",
@@ -128,6 +130,7 @@ YOUR TASK (PLAN ONLY – no SQL yet):
 4. State what the grain of the result should be.
 5. Note any double-counting risk and how to avoid it.
 6. State whether the question can be answered.
+7. If the request is genuinely ambiguous, set needs_clarification=true and provide a clarifying_question.
 
 If the question CANNOT be answered with the available tables/columns, set
 answerable=false and explain in unanswerable_reason.
@@ -266,11 +269,28 @@ def plan_and_generate_sql(
     logger.info("Planning query for: {}…", question[:80])
     plan: QueryPlan = call_llm_structured(plan_prompt, QueryPlan)
 
-    if not plan.answerable:
-        raise ValueError(
-            plan.unanswerable_reason
-            or "Question cannot be answered from available data."
+    if plan.needs_clarification and plan.clarifying_question:
+        from app.answering.composer import _store_turn
+        import uuid
+        _store_turn(
+            conversation_id,
+            str(uuid.uuid4()),
+            question,
+            {"answer": plan.clarifying_question, "sql": ""}
         )
+        raise ValueError(plan.clarifying_question)
+
+    if not plan.answerable:
+        from app.answering.composer import _store_turn
+        import uuid
+        msg = plan.unanswerable_reason or "Question cannot be answered from available data."
+        _store_turn(
+            conversation_id,
+            str(uuid.uuid4()),
+            question,
+            {"answer": msg, "sql": ""}
+        )
+        raise ValueError(msg)
 
     logger.debug("Plan: tables={} filters={}", plan.tables, plan.filters)
 
