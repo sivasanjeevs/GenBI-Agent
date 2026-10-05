@@ -1,0 +1,30 @@
+# overrides.yaml
+# Manual corrections to the auto-generated semantic layer.
+# These are merged on top of the generated JSON at query time.
+# All changes are logged to changelog.json.
+#
+# Structure:
+#   tables:
+#     SCHEMA.TABLE_NAME:
+#       semantics:
+#         table_description: "Override description"
+#       columns:
+#         column_name:
+#           value_map:
+#             A: Active
+#             P: Passive
+#
+# Example (uncomment and edit after running /learn):
+#
+# tables:
+#   VID.SUBSCRIBERS:
+#     semantics:
+#       table_description: "One row per subscriber SIM history record (SCD Type 2)"
+#     columns:
+#       status:
+#         value_map:
+#           A: "Active - currently subscribed"
+#           P: "Passive - suspended"
+#           D: "Disconnected"
+
+tables: {}
