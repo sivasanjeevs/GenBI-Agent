@@ -52,7 +52,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:5173"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -68,15 +68,21 @@ class LearnResponse(BaseModel):
     status: str
     message: str
     semantic_layer_path: str
+    version_hash: str
 
 class AskRequest(BaseModel):
     question: str
     conversation_id: str | None = None        # for follow-up (CP5)
     date_context: str | None = None           # e.g. "today is 2026-08-28"
 
+class AgentTrace(BaseModel):
+    attempts: int
+    repaired: bool
+    abstained: bool
+
 class AskResponse(BaseModel):
     question_id: str
-    answer: str
+    answer_text: str
     sql: str
     data: list[dict[str, Any]]
     columns: list[str]
@@ -84,6 +90,7 @@ class AskResponse(BaseModel):
     elapsed_ms: float
     date_interpretation: str | None = None
     explanation: str
+    trace: AgentTrace
     chart: dict[str, Any] | None = None       # CP6 bonus
 
 class OverrideRequest(BaseModel):
@@ -133,10 +140,14 @@ async def learn(req: LearnRequest, background_tasks: BackgroundTasks):
         }
         verified = verify_all(enriched, pwp_map)
         path = save_semantic_layer(verified)
+        import hashlib
+        import time
+        vhash = hashlib.md5(str(time.time()).encode()).hexdigest()[:8]
         return LearnResponse(
             status="success",
             message=f"Semantic layer built for {len(schemas)} schema(s), saved to {path}",
             semantic_layer_path=str(path),
+            version_hash=vhash,
         )
     except Exception as exc:
         logger.exception("Learning pipeline failed")
@@ -194,20 +205,39 @@ def ask(req: AskRequest) -> AskResponse:
             question_id=question_id,
             conversation_id=req.conversation_id,
         )
-        return AskResponse(**response)
+        trace = AgentTrace(
+            attempts=response.get("attempts", 0),
+            repaired=response.get("repaired", False),
+            abstained=response.get("abstained", False),
+        )
+
+        return AskResponse(
+            question_id=response["question_id"],
+            answer_text=response["answer"],
+            sql=response["sql"],
+            data=response["data"],
+            columns=response["columns"],
+            row_count=response["row_count"],
+            elapsed_ms=response["elapsed_ms"],
+            date_interpretation=response["date_interpretation"],
+            explanation=response["explanation"],
+            trace=trace,
+            chart=response.get("chart"),
+        )
 
     except ValueError as exc:
         # Unanswerable questions – return a graceful "I don't know"
         logger.warning(f"Unanswerable: {exc}")
         return AskResponse(
             question_id=question_id,
-            answer=str(exc),
+            answer_text=str(exc),
             sql="",
             data=[],
             columns=[],
             row_count=0,
             elapsed_ms=0.0,
             explanation="The data cannot answer this question.",
+            trace=AgentTrace(attempts=0, repaired=False, abstained=True),
         )
     except Exception as exc:
         logger.exception("Ask pipeline failed")
