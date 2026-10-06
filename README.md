@@ -27,6 +27,12 @@ Unlike traditional Text-to-SQL tools that rely on manually hardcoded definitions
 
 ---
 
+## 🏗️ Architecture explaination and demo video 
+
+[demo video]([https://www.figma.com/board/4cnYCwRrL5Ph5rcMpAQ8av/GenBI-agent?node-id=0-1&t=0Se0a7V6rOCf4ES0-1](https://drive.google.com/drive/folders/1UHdZ_tuicso26fwg1h5EDxoC652KOmz3?usp=sharing))
+
+---
+
 ## ⚙️ Local Setup & Installation
 
 ### 1. Prerequisites
