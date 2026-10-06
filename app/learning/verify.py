@@ -6,13 +6,13 @@ The LLM is creative but not infallible.  This module wraps every
 WHERE <filter_sql>`` and tests the result.
 
 Failure conditions (any one → repair)
-──────────────────────────────────────
+
 • Oracle raises an error (bad column name, syntax error, etc.).
 • The count == 0              (concept selects nothing – vacuous filter).
 • The count == table.row_count (concept selects everything – trivially true).
 
 Repair loop
-───────────
+
 1. Format a targeted error message that names the problem and lists the
    valid column names for the table.
 2. Call ``enrich.generate_concepts()`` with ``error_context`` set, which
@@ -24,7 +24,7 @@ Repair loop
    can review it.
 
 Public API
-──────────
+
     verify_all(enrichments: list[TableEnrichment],
                pwp_map: dict[str, ProfileWithPatterns]) -> list[TableEnrichment]
 """
@@ -43,16 +43,11 @@ from app.learning.patterns import ProfileWithPatterns
 # Maximum repair attempts per concept before marking it low-confidence.
 MAX_REPAIR_ATTEMPTS: int = 2
 
-
-# ─── Verification Helpers ─────────────────────────────────────────────────────
-
 class _ConceptVerificationError(Exception):
     """Raised internally when a concept fails verification."""
 
-
 def _build_count_sql(schema: str, table: str, filter_sql: str) -> str:
     return f'SELECT COUNT(*) AS cnt FROM {schema}.{table} WHERE {filter_sql}'
-
 
 def _verify_concept_sql(
     schema: str,
@@ -97,7 +92,6 @@ def _verify_concept_sql(
             "repair_hint": hint,
         }
 
-    # ── Semantic failure checks ───────────────────────────────────────────────
     if cnt == 0:
         hint = (
             f"The filter returned 0 rows out of {table_row_count:,} total. "
@@ -130,7 +124,6 @@ def _verify_concept_sql(
             "repair_hint": hint,
         }
 
-    # ── Success ───────────────────────────────────────────────────────────────
     return {
         "sql": sql,
         "count": cnt,
@@ -139,9 +132,6 @@ def _verify_concept_sql(
         "error": None,
         "repair_hint": None,
     }
-
-
-# ─── Concept-level Repair Loop ────────────────────────────────────────────────
 
 def _verify_and_repair_concept(
     concept_term: str,
@@ -190,11 +180,9 @@ def _verify_and_repair_concept(
             concept_term, attempt, MAX_REPAIR_ATTEMPTS + 1, result["error"],
         )
 
-        # ── Max attempts reached ─────────────────────────────────────────────
         if attempt > MAX_REPAIR_ATTEMPTS:
             break
 
-        # ── Repair: send error_context back to the LLM ───────────────────────
         error_context = (
             f"Concept: '{concept_term}'\n"
             f"filter_sql: {current_filter!r}\n"
@@ -231,7 +219,6 @@ def _verify_and_repair_concept(
             logger.error("Repair LLM call failed for '{}': {}", concept_term, exc)
             break
 
-    # ── All attempts exhausted – mark low confidence ─────────────────────────
     return {
         "term": concept_term,
         "filter_sql": current_filter,
@@ -243,9 +230,6 @@ def _verify_and_repair_concept(
         "error": last_result.get("error", "unknown"),
         "repair_attempts": MAX_REPAIR_ATTEMPTS,
     }
-
-
-# ─── Public Interface ─────────────────────────────────────────────────────────
 
 def verify_all(
     enrichments: list[TableEnrichment],

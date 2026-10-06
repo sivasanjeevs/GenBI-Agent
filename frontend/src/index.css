@@ -1,13 +1,7 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Inter", "Outfit", ui-sans-serif, system-ui, sans-serif;
-  
-  --color-dg-bg: #09090b;
-  --color-dg-panel: #18181b;
-  --color-dg-primary: #8b5cf6;
-  --color-dg-accent: #3b82f6;
-  --color-dg-glow: rgba(139, 92, 246, 0.4);
+
 }
 
 body {
@@ -35,8 +29,6 @@ body {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
-
-/* ── Animation helpers ─────────────────────────────────────────────────────── */
 
 @keyframes fadeIn {
   from { opacity: 0; }
@@ -66,7 +58,6 @@ body {
 .duration-500  { animation-duration: 500ms; }
 .fill-mode-both { animation-fill-mode: both; }
 
-/* ── Line clamp ──────────────────────────────────────────────────────────────*/
 .line-clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;

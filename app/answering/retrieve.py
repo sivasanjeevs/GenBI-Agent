@@ -5,7 +5,7 @@ Selects the 3-7 most relevant tables, columns, and verified business
 concepts from the semantic layer for a given user question.
 
 Two-stage retrieval pipeline
-─────────────────────────────
+
 Stage 1  BM25 ranking  (rank-bm25 library).
   Build a corpus of "documents", one per table, composed of:
     • table name / entity name / description
@@ -22,7 +22,7 @@ Stage 2  LLM scoring  (only if > top_k candidates remain).
 Output: a typed RetrievalResult Pydantic model.
 
 Public API
-──────────
+
     retrieve_relevant_semantics(question, top_k) -> RetrievalResult
 """
 
@@ -37,9 +37,6 @@ from pydantic import BaseModel, Field
 from app.learning.store import load_semantic_layer
 from app.llm import call_llm_structured
 
-
-# ─── Pydantic Models ──────────────────────────────────────────────────────────
-
 class RetrievalResult(BaseModel):
     """Typed output from the retrieval stage, consumed by planner.py."""
     tables: list[dict[str, Any]] = Field(
@@ -52,7 +49,6 @@ class RetrievalResult(BaseModel):
         default_factory=dict,
         description="BM25 score per table (for transparency/debugging)",
     )
-
 
 class _LLMRanking(BaseModel):
     """Structured LLM output for ranking step."""
@@ -68,9 +64,6 @@ class _LLMRanking(BaseModel):
         description="One sentence explaining why these tables were selected.",
     )
 
-
-# ─── BM25 Corpus Builder ──────────────────────────────────────────────────────
-
 _STOP_WORDS = frozenset(
     {
         "a", "an", "the", "of", "in", "is", "are", "was", "were",
@@ -81,12 +74,10 @@ _STOP_WORDS = frozenset(
     }
 )
 
-
 def _tokenize(text: str) -> list[str]:
     """Lower-case, remove punctuation, split on whitespace, drop stop-words."""
     tokens = re.sub(r"[^\w\s]", " ", text.lower()).split()
     return [t for t in tokens if len(t) > 2 and t not in _STOP_WORDS]
-
 
 def _build_table_document(table: dict[str, Any]) -> list[str]:
     """
@@ -125,9 +116,6 @@ def _build_table_document(table: dict[str, Any]) -> list[str]:
 
     return tokens
 
-
-# ─── LLM Ranking Step ─────────────────────────────────────────────────────────
-
 _RANKING_PROMPT_TEMPLATE = """You are an Oracle SQL expert helping select the right database tables.
 
 USER QUESTION: "{question}"
@@ -139,7 +127,6 @@ Select the tables actually needed to answer the question.
 Order them from most to least relevant.
 Include at most 7 tables. Do not hallucinate tables not listed above.
 """
-
 
 def _llm_rank(
     question: str,
@@ -161,9 +148,6 @@ def _llm_rank(
     except Exception as exc:  # noqa: BLE001
         logger.warning("LLM ranking failed ({}); returning BM25 order.", exc)
         return [t["full_name"] for t in candidates]
-
-
-# ─── Public Interface ─────────────────────────────────────────────────────────
 
 def retrieve_relevant_semantics(
     question: str,
@@ -201,7 +185,6 @@ def retrieve_relevant_semantics(
 
     all_tables: list[dict[str, Any]] = layer.get("tables", [])
 
-    # ── Fast path: small layer ────────────────────────────────────────────────
     if len(all_tables) <= top_k:
         return RetrievalResult(
             tables=all_tables,
@@ -209,7 +192,6 @@ def retrieve_relevant_semantics(
             bm25_scores={t["full_name"]: 1.0 for t in all_tables},
         )
 
-    # ── Stage 1: BM25 ────────────────────────────────────────────────────────
     q_tokens = _tokenize(question)
     corpus: list[list[str]] = [_build_table_document(t) for t in all_tables]
 
@@ -228,7 +210,6 @@ def retrieve_relevant_semantics(
         # Nothing scored > 0: fall back to top tables by BM25 anyway
         candidates = [t for t, _ in scored[:_BM25_CANDIDATES]]
 
-    # ── Stage 2: LLM ranking (only when BM25 returns more than top_k) ────────
     if len(candidates) > top_k:
         ranked_names = _llm_rank(question, candidates)
         name_map: dict[str, dict[str, Any]] = {t["full_name"]: t for t in candidates}

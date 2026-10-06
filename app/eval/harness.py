@@ -28,7 +28,6 @@ from app.answering.retrieve import retrieve_relevant_semantics
 from app.config import settings
 from app.eval.compare import compare_results
 
-
 def _empty_run_result() -> dict[str, Any]:
     return {
         "sql": "",
@@ -42,7 +41,6 @@ def _empty_run_result() -> dict[str, Any]:
         "error": None,
         "model": settings.llm_model,
     }
-
 
 def _run_single_pipeline(question: str) -> dict[str, Any]:
     """Execute the answering pipeline once."""
@@ -74,7 +72,6 @@ def _run_single_pipeline(question: str) -> dict[str, Any]:
 
     run_result["total_latency_ms"] = (time.perf_counter() - start_time) * 1000
     return run_result
-
 
 def _eval_question(
     question_id: str,
@@ -128,7 +125,6 @@ def _eval_question(
         "success_rate": len(successful_runs) / runs,
     }
 
-
 def _write_markdown_report(summary: dict[str, Any], path: Path) -> None:
     """Generate a markdown report of the evaluation metrics."""
     md = f"# Evaluation Harness Report\n\n"
@@ -166,7 +162,6 @@ def _write_markdown_report(summary: dict[str, Any], path: Path) -> None:
     md += "\n"
     path.write_text(md, encoding="utf-8")
 
-
 def run_harness(
     benchmark_file: str | None = None,
     runs: int | None = None,
@@ -202,7 +197,6 @@ def run_harness(
         logger.warning("No questions evaluated.")
         return
 
-    # ── Compute Suite Metrics ────────────────────────────────────────────────
     total = len(all_results)
     n_correct = sum(1 for r in all_results if r["is_correct"] is True)
     n_consistent = sum(1 for r in all_results if r["is_consistent"] is True)
@@ -235,7 +229,6 @@ def run_harness(
         "results": all_results,
     }
 
-    # ── Write Outputs ────────────────────────────────────────────────────────
     ts = time.strftime("%Y%m%d_%H%M%S")
     
     # Detailed JSON
@@ -259,7 +252,6 @@ def run_harness(
     print(f"Consistency: {summary['consistency_rate']*100:.1f}% ({n_consistent}/{total})")
     print(f"Resilience:  {avg_retries:.2f} retries/question")
     print(f"Speed:       p50={p50_lat:.0f}ms, p95={p95_lat:.0f}ms")
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="GenBI Evaluation Harness")

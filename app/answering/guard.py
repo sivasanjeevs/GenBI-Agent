@@ -5,7 +5,7 @@ All LLM-generated SQL passes through this module before execution.
 The agent must remain a strictly Read-Only Analytics Engine.
 
 Validation pipeline
-────────────────────
+
 1. Strip markdown fences and normalise whitespace.
 2. Quick keyword blocklist (fast regex path).
 3. sqlglot parse in Oracle dialect.
@@ -13,7 +13,7 @@ Validation pipeline
    immediate security failure with a descriptive error.
 
 Public API
-──────────
+
     validate_select_only(sql: str) -> None      # raises ValueError on failure
     clean_sql(sql: str) -> str                  # strip fences + semicolons
 """
@@ -26,8 +26,6 @@ import sqlglot
 import sqlglot.expressions as exp
 from loguru import logger
 
-
-# ─── Keyword Blocklist ────────────────────────────────────────────────────────
 # Fast path: reject obvious mutations before handing off to sqlglot.
 
 _BLOCKED = re.compile(
@@ -39,9 +37,6 @@ _BLOCKED = re.compile(
     r")\b",
     re.IGNORECASE,
 )
-
-
-# ─── Public Functions ─────────────────────────────────────────────────────────
 
 def clean_sql(raw: str) -> str:
     """
@@ -63,7 +58,6 @@ def clean_sql(raw: str) -> str:
     # Normalise: strip outer whitespace and trailing semicolons
     return sql.strip().rstrip(";").strip()
 
-
 def validate_select_only(sql: str) -> None:
     """
     Validate that ``sql`` is a safe, single SELECT statement.
@@ -83,7 +77,6 @@ def validate_select_only(sql: str) -> None:
     """
     sql = sql.strip()
 
-    # ── Level 1: keyword blocklist ────────────────────────────────────────────
     m = _BLOCKED.search(sql)
     if m:
         raise ValueError(
@@ -92,7 +85,6 @@ def validate_select_only(sql: str) -> None:
             "The agent is a read-only analytics engine."
         )
 
-    # ── Level 2: sqlglot parse ────────────────────────────────────────────────
     try:
         statements = sqlglot.parse(sql, dialect="oracle")
     except sqlglot.errors.ParseError as exc:
@@ -103,7 +95,6 @@ def validate_select_only(sql: str) -> None:
 
     non_none = [s for s in statements if s is not None]
 
-    # ── Level 3: single statement ─────────────────────────────────────────────
     if len(non_none) != 1:
         raise ValueError(
             f"SECURITY: Only a single SELECT statement is allowed; "
@@ -111,7 +102,6 @@ def validate_select_only(sql: str) -> None:
             "Multi-statement SQL is not permitted."
         )
 
-    # ── Level 4: SELECT type check ────────────────────────────────────────────
     stmt = non_none[0]
     if not isinstance(stmt, exp.Select):
         raise ValueError(

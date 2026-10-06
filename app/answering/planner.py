@@ -17,7 +17,7 @@ The final output is an AnsweringState Pydantic model that carries the
 question, plan, SQL, and date context through the rest of the pipeline.
 
 Public API
-──────────
+
     plan_and_generate_sql(
         question, retrieval, date_ctx, conversation_id
     ) -> AnsweringState
@@ -35,9 +35,6 @@ from app.answering.dates import DateContext
 from app.answering.guard import clean_sql, validate_select_only
 from app.answering.retrieve import RetrievalResult
 from app.llm import call_llm_structured
-
-
-# ─── Shared State Model ───────────────────────────────────────────────────────
 
 class QueryPlan(BaseModel):
     """Step-by-step reasoning output from the planning LLM call."""
@@ -77,7 +74,6 @@ class QueryPlan(BaseModel):
         description="2-4 sentence plain-English reasoning trace.",
     )
 
-
 class SqlOutput(BaseModel):
     """SQL generation output from the second LLM call."""
     sql: str = Field(
@@ -92,7 +88,6 @@ class SqlOutput(BaseModel):
         description="One-line description of what the query computes.",
     )
 
-
 class AnsweringState(BaseModel):
     """Shared state object threaded through the entire answering pipeline."""
     question: str
@@ -106,9 +101,6 @@ class AnsweringState(BaseModel):
     repaired: bool = False
     abstained: bool = False
     abstain_reason: str = ""
-
-
-# ─── Prompt Templates ─────────────────────────────────────────────────────────
 
 _PLAN_PROMPT = """You are a senior Oracle SQL expert with deep knowledge of telecom databases.
 Think step-by-step before answering.
@@ -167,9 +159,6 @@ ORACLE SQL RULES:
 Write ONLY the SQL. No markdown. No explanation.
 """
 
-
-# ─── Context Builders ─────────────────────────────────────────────────────────
-
 def _build_table_context(retrieval: RetrievalResult) -> str:
     """Flatten retrieved semantic layer tables into a dense prompt string."""
     lines: list[str] = []
@@ -215,7 +204,6 @@ def _build_table_context(retrieval: RetrievalResult) -> str:
 
     return "\n".join(lines)
 
-
 def _build_conversation_context(conversation_id: str | None) -> str:
     if not conversation_id:
         return ""
@@ -228,9 +216,6 @@ def _build_conversation_context(conversation_id: str | None) -> str:
         lines.append(f"  Q: {turn['question']}")
         lines.append(f"  SQL: {turn.get('sql', '')[:200]}")
     return "\n".join(lines)
-
-
-# ─── Public Interface ─────────────────────────────────────────────────────────
 
 def plan_and_generate_sql(
     question: str,
@@ -261,7 +246,6 @@ def plan_and_generate_sql(
     date_sql_hint = date_ctx.to_sql_hint()
     conversation_context = _build_conversation_context(conversation_id)
 
-    # ── Step 1: Plan ──────────────────────────────────────────────────────────
     plan_prompt = _PLAN_PROMPT.format(
         question=question,
         date_sql_hint=date_sql_hint,
@@ -297,7 +281,6 @@ def plan_and_generate_sql(
 
     logger.debug("Plan: tables={} filters={}", plan.tables, plan.filters)
 
-    # ── Step 2: SQL Generation ────────────────────────────────────────────────
     sql_prompt = _SQL_PROMPT.format(
         question=question,
         plan_json=plan.model_dump_json(indent=2),
@@ -310,7 +293,6 @@ def plan_and_generate_sql(
         sql_prompt, SqlOutput, bypass_cache=True
     )
 
-    # ── Guard: strip fences, validate SELECT-only ─────────────────────────────
     sql = clean_sql(sql_output.sql)
     validate_select_only(sql)   # raises ValueError on non-SELECT
 

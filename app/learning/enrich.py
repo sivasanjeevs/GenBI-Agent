@@ -5,7 +5,7 @@ Converts raw profile + pattern data into human-readable business concepts
 using the structured LLM wrapper built in Phase 1.
 
 Key design decisions
-─────────────────────
+
 • ``BusinessConcept``   – Pydantic model for a single filterable concept
   (e.g. "Active Subscribers → status = 'A'").
 • ``TableSemantics``    – Pydantic model for the complete LLM output per table.
@@ -18,7 +18,7 @@ Key design decisions
   the validation-error retry path.
 
 Public API
-──────────
+
     enrich_table(pwp: ProfileWithPatterns, bypass_cache: bool) -> TableEnrichment
     enrich_all(tables: list[ProfileWithPatterns], bypass_cache: bool) -> list[TableEnrichment]
 """
@@ -34,9 +34,6 @@ from tqdm import tqdm
 
 from app.llm import call_llm_structured
 from app.learning.patterns import ProfileWithPatterns
-
-
-# ─── Pydantic Output Models ───────────────────────────────────────────────────
 
 class BusinessConcept(BaseModel):
     """
@@ -63,7 +60,6 @@ class BusinessConcept(BaseModel):
         ..., description="One-sentence explanation backed by the data values"
     )
 
-
 class ColumnSemantics(BaseModel):
     """LLM-generated semantics for a single column."""
     description: str = ""
@@ -72,7 +68,6 @@ class ColumnSemantics(BaseModel):
     is_measure: bool = False
     is_dimension: bool = True
     semantic_type: str = "text"   # date|timestamp|status|id|measure|text|flag|category
-
 
 class TableSemantics(BaseModel):
     """Complete LLM output for one table."""
@@ -84,7 +79,6 @@ class TableSemantics(BaseModel):
     columns: dict[str, ColumnSemantics] = Field(default_factory=dict)
     counting_warnings: list[str] = Field(default_factory=list)
     suggested_joins: list[dict[str, str]] = Field(default_factory=list)
-
 
 class TableEnrichment(BaseModel):
     """Everything about one table: profile, patterns, and LLM semantics."""
@@ -107,9 +101,6 @@ class TableEnrichment(BaseModel):
     semantics: TableSemantics
     # Populated later by verify.py:
     verified_concepts: list[dict[str, Any]] = Field(default_factory=list)
-
-
-# ─── Prompt Construction ──────────────────────────────────────────────────────
 
 def _build_prompt(
     pwp: ProfileWithPatterns,
@@ -172,7 +163,7 @@ NUMERIC MEASURE COLUMNS: {patterns.numeric_measure_columns}
 JOIN CANDIDATES: {join_json}
 
 TASK
-────
+
 1. Write a 2-3 sentence business description of this table.
 2. Identify the business entity (e.g. Subscriber, Shop, Tariff, Campaign).
 3. Confirm or refine the grain statement.
@@ -191,9 +182,6 @@ Return ONLY a JSON object – no markdown fences, no explanation text."""
         prompt += f"\n\nPREVIOUS ATTEMPT FAILED:\n{error_context}\nPlease correct your response."
 
     return prompt
-
-
-# ─── Public Interface ─────────────────────────────────────────────────────────
 
 def generate_concepts(
     pwp: ProfileWithPatterns,
@@ -221,7 +209,6 @@ def generate_concepts(
         TableSemantics,
         bypass_cache=bypass_cache or (error_context is not None),
     )
-
 
 def enrich_table(
     pwp: ProfileWithPatterns,
@@ -284,7 +271,6 @@ def enrich_table(
         ],
         semantics=semantics,
     )
-
 
 def enrich_all(
     tables: list[ProfileWithPatterns],

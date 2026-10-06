@@ -2,7 +2,7 @@
 llm.py – Resilient Gemini LLM wrapper with structured output and disk cache.
 
 Architecture
-────────────
+
 • Uses the *new* ``google-genai`` SDK (``google.genai``), not the legacy
   ``google-generativeai`` package.
 • Enforces temperature=0 for deterministic, analytical output.
@@ -18,7 +18,7 @@ Architecture
   attempt is made.
 
 Public API
-──────────
+
     call_llm_structured(prompt, response_model) -> T  (structured path)
     call_llm(prompt)                                  -> str  (plain-text path)
     extract_json(response)                            -> Any  (legacy helper)
@@ -48,9 +48,6 @@ if TYPE_CHECKING:
 
 T = TypeVar("T", bound="BaseModel")
 
-
-# ─── SDK Import ───────────────────────────────────────────────────────────────
-
 def _get_genai_client():  # type: ignore[return]
     """Lazily import and configure the google-genai client."""
     try:
@@ -71,19 +68,14 @@ def _get_genai_client():  # type: ignore[return]
     client = genai.Client(api_key=settings.gemini_api_key)
     return client, genai_types
 
-
-# ─── Disk Cache ───────────────────────────────────────────────────────────────
-
 def _cache_key(model: str, prompt: str, schema_name: str) -> str:
     """SHA-256 hash of (model, prompt, schema_name) for cache keying."""
     raw = f"{model}::{schema_name}::{prompt}"
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
-
 def _cache_path(key: str) -> Path:
     settings.llm_cache_dir.mkdir(parents=True, exist_ok=True)
     return settings.llm_cache_dir / f"{key}.json"
-
 
 def _load_cache(key: str) -> str | None:
     """Return cached response text, or None if not present / disabled."""
@@ -99,7 +91,6 @@ def _load_cache(key: str) -> str | None:
             logger.warning("Corrupt cache file {}; ignoring.", p)
     return None
 
-
 def _save_cache(key: str, response: str) -> None:
     """Persist response text to disk cache."""
     if not settings.llm_cache_enabled:
@@ -111,9 +102,6 @@ def _save_cache(key: str, response: str) -> None:
         ),
         encoding="utf-8",
     )
-
-
-# ─── Retry Logic ──────────────────────────────────────────────────────────────
 
 def _is_retryable(exc: BaseException) -> bool:
     """
@@ -132,14 +120,12 @@ def _is_retryable(exc: BaseException) -> bool:
         return True
     return False
 
-
 def _log_retry(retry_state: RetryCallState) -> None:
     logger.warning(
         "LLM retry #{} after error: {}",
         retry_state.attempt_number,
         retry_state.outcome.exception() if retry_state.outcome else "unknown",
     )
-
 
 _RETRY_POLICY = dict(
     retry=retry_if_exception(_is_retryable),
@@ -148,9 +134,6 @@ _RETRY_POLICY = dict(
     before_sleep=_log_retry,
     reraise=True,
 )
-
-
-# ─── Core Gemini Caller ───────────────────────────────────────────────────────
 
 @retry(**_RETRY_POLICY)  # type: ignore[arg-type]
 def _call_gemini_raw(
@@ -217,9 +200,6 @@ def _call_gemini_raw(
                     continue
             raise
 
-
-# ─── Structured Output (primary public API) ───────────────────────────────────
-
 def call_llm_structured(
     prompt: str,
     response_model: type[T],
@@ -253,13 +233,11 @@ def call_llm_structured(
 
     cache_key = _cache_key(primary_model, prompt, schema_name)
 
-    # ── Cache check ──────────────────────────────────────────────────────────
     if not bypass_cache:
         cached = _load_cache(cache_key)
         if cached is not None:
             return _parse_response(cached, response_model)
 
-    # ── Attempt with primary model ───────────────────────────────────────────
     raw: str | None = None
     model_used = primary_model
 
@@ -279,7 +257,7 @@ def call_llm_structured(
             primary_model,
             primary_exc,
         )
-        # ── Fallback to fast model ───────────────────────────────────────────
+
         if fast_model and fast_model != primary_model:
             logger.warning("Falling back to fast model: {}", fast_model)
             model_used = fast_model
@@ -306,7 +284,6 @@ def call_llm_structured(
         elapsed_ms,
     )
 
-    # ── Validation with one-shot repair ─────────────────────────────────────
     try:
         result = _parse_response(raw, response_model)
     except (json.JSONDecodeError, ValueError) as val_err:
@@ -336,7 +313,6 @@ def call_llm_structured(
     _save_cache(cache_key, raw)
     return result
 
-
 def _parse_response(raw: str, response_model: type[T]) -> T:
     """Parse and validate *raw* JSON text against *response_model*."""
     try:
@@ -344,9 +320,6 @@ def _parse_response(raw: str, response_model: type[T]) -> T:
     except json.JSONDecodeError as exc:
         raise ValueError(f"LLM returned non-JSON response: {exc}") from exc
     return response_model.model_validate(data)
-
-
-# ─── Plain-text Path (backwards-compatible) ───────────────────────────────────
 
 def call_llm(prompt: str, *, bypass_cache: bool = False) -> str:
     """
@@ -400,9 +373,6 @@ def call_llm(prompt: str, *, bypass_cache: bool = False) -> str:
     _save_cache(key, response)
     return response
 
-
-# ─── Legacy Provider Shims ────────────────────────────────────────────────────
-
 @retry(**_RETRY_POLICY)  # type: ignore[arg-type]
 def _call_openai(prompt: str) -> str:
     from openai import OpenAI  # type: ignore[import-untyped]
@@ -416,7 +386,6 @@ def _call_openai(prompt: str) -> str:
     )
     return resp.choices[0].message.content or ""
 
-
 @retry(**_RETRY_POLICY)  # type: ignore[arg-type]
 def _call_anthropic(prompt: str) -> str:
     import anthropic  # type: ignore[import-untyped]
@@ -428,7 +397,6 @@ def _call_anthropic(prompt: str) -> str:
         messages=[{"role": "user", "content": prompt}],
     )
     return msg.content[0].text  # type: ignore[index]
-
 
 @retry(**_RETRY_POLICY)  # type: ignore[arg-type]
 def _call_ollama(prompt: str) -> str:
@@ -449,9 +417,6 @@ def _call_ollama(prompt: str) -> str:
     )
     resp.raise_for_status()
     return resp.json()["response"]
-
-
-# ─── JSON Extraction Helper (legacy) ─────────────────────────────────────────
 
 def extract_json(response: str) -> Any:
     """

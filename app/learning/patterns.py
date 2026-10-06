@@ -4,7 +4,7 @@ patterns.py – Deterministic structural pattern detection (Phase 2 / Step 3).
 No LLM calls.  Pure Python + lightweight SQL probes.
 
 Detections
-──────────
+
 1. GRAIN        – smallest set of columns where COUNT(DISTINCT cols) == COUNT(*)
                   Verified with an actual SQL query against the DB.
 2. JOIN INFER   – undeclared FKs: child col values ⊆ parent col values > 95%
@@ -16,7 +16,7 @@ Detections
 Pydantic models are used throughout so enrich.py gets typed inputs.
 
 Public API
-──────────
+
     detect_patterns(
         profiles: list[TableProfile],
         tables: list[TableMeta],          # for declared FKs
@@ -34,9 +34,6 @@ from pydantic import BaseModel, Field
 from app.db import raw_execute
 from app.learning.introspect import TableMeta
 from app.learning.profile import TableProfile
-
-
-# ─── Regex Heuristics ─────────────────────────────────────────────────────────
 
 _SCD_EFF = re.compile(
     r"(eff|start|valid|from|begin|strt|effective).*(date|dt|ts|time)", re.I
@@ -63,9 +60,6 @@ _FK_CONTAINMENT_THRESHOLD: float = 0.95
 # Minimum rows in a table before we attempt FK containment probes
 _FK_MIN_ROWS: int = 10
 
-
-# ─── Pydantic Models ──────────────────────────────────────────────────────────
-
 class JoinCandidate(BaseModel):
     """A potential join relationship (declared or inferred)."""
     source_column: str
@@ -74,13 +68,11 @@ class JoinCandidate(BaseModel):
     confidence: str          # "declared" | "high" | "medium" | "low"
     containment_pct: float | None = None   # only for inferred FKs
 
-
 class StatusColumn(BaseModel):
     """A column that looks like a status/flag with known values."""
     column_name: str
     distinct_count: int
     top_values: list[dict[str, Any]] = Field(default_factory=list)
-
 
 class PatternResult(BaseModel):
     """All detected patterns for one table."""
@@ -99,7 +91,6 @@ class PatternResult(BaseModel):
     date_columns: list[str] = Field(default_factory=list)
     numeric_measure_columns: list[str] = Field(default_factory=list)
 
-
 class ProfileWithPatterns(BaseModel):
     """Combines a TableProfile with its detected PatternResult."""
     profile: TableProfile
@@ -107,9 +98,6 @@ class ProfileWithPatterns(BaseModel):
     patterns: PatternResult
 
     model_config = {"arbitrary_types_allowed": True}
-
-
-# ─── Grain Detection ──────────────────────────────────────────────────────────
 
 def _verify_grain_sql(schema: str, table: str, columns: list[str]) -> bool:
     """
@@ -133,7 +121,6 @@ def _verify_grain_sql(schema: str, table: str, columns: list[str]) -> bool:
     except Exception as exc:  # noqa: BLE001
         logger.debug("Grain SQL failed for {}.{}: {}", schema, table, exc)
     return False
-
 
 def _detect_grain(
     profile: TableProfile,
@@ -179,9 +166,6 @@ def _detect_grain(
 
     return "grain unknown – no obvious key columns", [], False
 
-
-# ─── FK / Join Inference ──────────────────────────────────────────────────────
-
 def _value_containment_pct(
     child_schema: str,
     child_table: str,
@@ -222,7 +206,6 @@ def _value_containment_pct(
         )
     return None
 
-
 def _infer_joins(
     profile: TableProfile,
     meta: TableMeta,
@@ -237,7 +220,6 @@ def _infer_joins(
     candidates: list[JoinCandidate] = []
     seen: set[tuple[str, str, str]] = set()
 
-    # ── 1. Declared FKs ──────────────────────────────────────────────────────
     for fk in meta.foreign_keys:
         if fk.ref_table and fk.ref_columns:
             for src_col, tgt_col in zip(fk.columns, fk.ref_columns):
@@ -253,7 +235,6 @@ def _infer_joins(
                         )
                     )
 
-    # ── 2. Value-containment for name-matched, undeclared relationships ───────
     if (profile.row_count or 0) < _FK_MIN_ROWS:
         return candidates
 
@@ -312,9 +293,6 @@ def _infer_joins(
 
     return candidates
 
-
-# ─── Other Pattern Detectors ──────────────────────────────────────────────────
-
 def _find_scd_signals(
     profile: TableProfile,
 ) -> tuple[str | None, str | None, str | None]:
@@ -327,7 +305,6 @@ def _find_scd_signals(
         if _SCD_CURR.search(c.column_name) and curr_col is None:
             curr_col = c.column_name
     return eff_col, exp_col, curr_col
-
 
 def _find_status_columns(profile: TableProfile) -> list[StatusColumn]:
     """Low-cardinality columns matching status/flag naming patterns."""
@@ -343,14 +320,12 @@ def _find_status_columns(profile: TableProfile) -> list[StatusColumn]:
             )
     return results
 
-
 def _find_date_cols(profile: TableProfile) -> list[str]:
     return [
         c.column_name
         for c in profile.columns
         if "DATE" in c.data_type.upper() or "TIMESTAMP" in c.data_type.upper()
     ]
-
 
 def _find_numeric_measures(profile: TableProfile) -> list[str]:
     """NUMBER columns that are not key-like and not nearly empty."""
@@ -366,7 +341,6 @@ def _find_numeric_measures(profile: TableProfile) -> list[str]:
         and c.column_name.lower() not in key_cols
         and c.null_pct < 90
     ]
-
 
 def _classify_table_type(
     profile: TableProfile,
@@ -390,9 +364,6 @@ def _classify_table_type(
     if (profile.row_count or 0) < 1000 and n_num == 0:
         return "lookup"
     return "dimension"
-
-
-# ─── Public Interface ─────────────────────────────────────────────────────────
 
 def detect_patterns(
     profiles: list[TableProfile],
@@ -428,20 +399,15 @@ def detect_patterns(
             # Shouldn't happen, but be defensive
             meta = TableMeta(schema=profile.schema_name, table_name=profile.table_name)
 
-        # ── SCD detection ──────────────────────────────────────────────────
         eff_col, exp_col, curr_col = _find_scd_signals(profile)
         is_scd = bool(eff_col and (exp_col or curr_col))
 
-        # ── Event timestamp ────────────────────────────────────────────────
         has_event_ts = any(_EVENT_TS.search(c.column_name) for c in profile.columns)
 
-        # ── Grain ──────────────────────────────────────────────────────────
         grain_desc, grain_cols, grain_verified = _detect_grain(profile, meta)
 
-        # ── Joins (declared + inferred) ────────────────────────────────────
         join_candidates = _infer_joins(profile, meta, profile_map, meta_map)
 
-        # ── Other classifiers ──────────────────────────────────────────────
         status_cols = _find_status_columns(profile)
         date_cols = _find_date_cols(profile)
         measure_cols = _find_numeric_measures(profile)

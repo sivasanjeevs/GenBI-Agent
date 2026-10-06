@@ -20,9 +20,6 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
 
-
-# ─── Normalisation ────────────────────────────────────────────────────────────
-
 def _norm_value(v: Any) -> str:
     """
     Normalise a single cell value.
@@ -54,7 +51,6 @@ def _norm_value(v: Any) -> str:
     # Strings
     return str(v).strip().upper()
 
-
 def _norm_row(row: dict[str, Any]) -> tuple[str, ...]:
     """
     Normalise a row dictionary into a sorted tuple of its values.
@@ -63,16 +59,12 @@ def _norm_row(row: dict[str, Any]) -> tuple[str, ...]:
     """
     return tuple(sorted(_norm_value(v) for v in row.values()))
 
-
 def _norm_result(rows: list[dict[str, Any]]) -> Counter[tuple[str, ...]]:
     """
     Normalise a list of rows into a Counter of row-tuples.
     This ignores row order entirely but strictly enforces exact row multiplicities.
     """
     return Counter(_norm_row(r) for r in rows)
-
-
-# ─── Public Interface ─────────────────────────────────────────────────────────
 
 def compare_results(
     actual: list[dict[str, Any]],
@@ -88,7 +80,7 @@ def compare_results(
     Returns:
         True if the data matches perfectly after normalisation.
     """
-    # ── Scalar expected (e.g. a single count) ────────────────────────────────
+
     if not isinstance(expected, list):
         if len(actual) == 1 and len(actual[0]) == 1:
             actual_val = list(actual[0].values())[0]
@@ -104,7 +96,6 @@ def compare_results(
                 return _norm_value(actual_val) == _norm_value(expected)
         return False
 
-    # ── Dataset expected ─────────────────────────────────────────────────────
     if not actual and not expected:
         return True
     if not actual or not expected:
@@ -114,9 +105,6 @@ def compare_results(
     norm_expected = _norm_result(expected)
 
     return norm_actual == norm_expected
-
-
-# ─── Pytest Block ─────────────────────────────────────────────────────────────
 
 def test_norm_value_float_rounding():
     assert _norm_value(3.14159) == "3.14"

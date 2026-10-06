@@ -103,7 +103,6 @@ export default function App() {
       <div className="fixed top-[-15%] left-[-10%] w-[45%] h-[45%] rounded-full bg-dg-primary/15 blur-[140px] pointer-events-none z-0" />
       <div className="fixed bottom-[-15%] right-[-10%] w-[45%] h-[45%] rounded-full bg-dg-accent/15 blur-[140px] pointer-events-none z-0" />
 
-      {/* ── Left conversation panel ──────────────────────────────────────────── */}
       {hasTurns && (
         <aside
           className="fixed left-0 top-0 h-full z-20 w-64 flex-shrink-0
@@ -119,13 +118,12 @@ export default function App() {
         </aside>
       )}
 
-      {/* ── Main content area ────────────────────────────────────────────────── */}
       <div
         className={`flex-1 relative z-10 transition-all duration-500 ${
           hasTurns ? 'ml-64' : 'ml-0'
         }`}
       >
-        {/* ── Eval button — top right corner ───────────────────────────────── */}
+
         <div className="fixed top-4 right-5 z-30">
           <button
             id="btn-eval-dashboard"
@@ -146,7 +144,7 @@ export default function App() {
             isTopBar ? 'pt-10' : 'pt-[28vh]'
           }`}
         >
-          {/* ── Header ─────────────────────────────────────────────────────── */}
+
           <div
             className={`flex flex-col transition-all duration-700 ease-in-out ${
               isTopBar ? 'mb-8 items-center' : 'items-center text-center mb-10'
@@ -178,7 +176,6 @@ export default function App() {
             </div>
           </div>
 
-          {/* ── Results area ────────────────────────────────────────────────── */}
           {isTopBar && (
             <div className="space-y-5 pb-24">
 
@@ -246,7 +243,6 @@ export default function App() {
         </div>
       </div>
 
-      {/* ── Eval Dashboard modal ─────────────────────────────────────────────── */}
       {showEval && <EvalDashboard onClose={() => setShowEval(false)} />}
     </div>
   )

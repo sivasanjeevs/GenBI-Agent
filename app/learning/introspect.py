@@ -6,7 +6,7 @@ All results are expressed as strict Pydantic v2 models so downstream
 modules get typed, validated data.
 
 Data gathered per table
-────────────────────────
+
 • Columns   : name, data_type, nullable, lengths, precision, scale, default
 • PK / FK   : via ALL_CONSTRAINTS + ALL_CONS_COLUMNS (+ recursive ref lookup)
 • Unique     : U-type constraints
@@ -15,7 +15,7 @@ Data gathered per table
 • Row count  : lightweight COUNT(*) per table
 
 Public API
-──────────
+
     introspect_schemas(schemas: list[str]) -> list[TableMeta]
 """
 
@@ -29,9 +29,6 @@ from tqdm import tqdm
 
 from app.db import raw_execute
 
-
-# ─── Pydantic Models ──────────────────────────────────────────────────────────
-
 class ColumnMeta(BaseModel):
     """Metadata for a single column in ALL_TAB_COLUMNS."""
     name: str
@@ -42,7 +39,6 @@ class ColumnMeta(BaseModel):
     data_scale: int | None = None
     default_value: str | None = None
 
-
 class ConstraintMeta(BaseModel):
     """A single constraint (P / R / U / C)."""
     name: str
@@ -52,12 +48,10 @@ class ConstraintMeta(BaseModel):
     ref_columns: list[str] | None = None
     search_condition: str | None = None  # for CHECK constraints
 
-
 class IndexMeta(BaseModel):
     name: str
     columns: list[str]
     uniqueness: str    # "UNIQUE" | "NONUNIQUE"
-
 
 class TableMeta(BaseModel):
     """All structural metadata for one Oracle table."""
@@ -87,9 +81,6 @@ class TableMeta(BaseModel):
     @property
     def check_constraints(self) -> list[ConstraintMeta]:
         return [c for c in self.constraints if c.type == "C"]
-
-
-# ─── SQL Templates ────────────────────────────────────────────────────────────
 
 _ALL_TABLES_SQL = """
 SELECT owner, table_name
@@ -160,9 +151,6 @@ ORDER  BY ai.index_name, aic.column_position
 
 _ROW_COUNT_SQL = "SELECT COUNT(*) AS cnt FROM {schema}.{table}"
 
-
-# ─── Internal Helpers ─────────────────────────────────────────────────────────
-
 def _build_constraints(schema: str, table: str) -> list[ConstraintMeta]:
     """Query ALL_CONSTRAINTS for a table and resolve FK references."""
     rows = raw_execute(_CONSTRAINTS_SQL, {"p_owner": schema, "p_table": table})
@@ -214,7 +202,6 @@ def _build_constraints(schema: str, table: str) -> list[ConstraintMeta]:
         )
     return constraints
 
-
 def _build_indexes(schema: str, table: str) -> list[IndexMeta]:
     """Query ALL_INDEXES + ALL_IND_COLUMNS for a table."""
     rows = raw_execute(_INDEXES_SQL, {"p_owner": schema, "p_table": table})
@@ -229,7 +216,6 @@ def _build_indexes(schema: str, table: str) -> list[IndexMeta]:
         for k, v in by_name.items()
     ]
 
-
 def _get_row_count(schema: str, table: str) -> int | None:
     """Return approximate row count; returns None on error."""
     try:
@@ -238,9 +224,6 @@ def _get_row_count(schema: str, table: str) -> int | None:
         return int(val) if val is not None else None
     except Exception:  # noqa: BLE001
         return None
-
-
-# ─── Public Interface ─────────────────────────────────────────────────────────
 
 def introspect_schemas(schemas: list[str]) -> list[TableMeta]:
     """
@@ -267,7 +250,6 @@ def introspect_schemas(schemas: list[str]) -> list[TableMeta]:
         schema = tr["owner"]
         table = tr["table_name"]
 
-        # ── Columns ──────────────────────────────────────────────────────────
         col_rows = raw_execute(_COLUMNS_SQL, {"p_owner": schema, "p_table": table})
         columns = [
             ColumnMeta(
@@ -305,9 +287,6 @@ def introspect_schemas(schemas: list[str]) -> list[TableMeta]:
 
     logger.success("Introspection complete: {} tables", len(result))
     return result
-
-
-# ─── CLI Smoke Test ───────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
     from app.config import settings

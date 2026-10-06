@@ -6,7 +6,7 @@ Results feed directly into patterns.py (deterministic analysis) and
 enrich.py (LLM enrichment context).
 
 Per-column statistics
-──────────────────────
+
 • total_rows        – from the parent table's COUNT(*)
 • non_null_count    – COUNT(col) (Oracle counts non-NULLs natively)
 • null_pct          – 100.0 * null_count / total_rows
@@ -16,13 +16,13 @@ Per-column statistics
 • sample_values     – up to 10 non-null raw values for LLM context
 
 Parallelism
-───────────
+
 A ThreadPoolExecutor batches the column profiling queries so that all
 columns of a table are profiled concurrently (bounded at 8 threads to
 respect the connection pool size of 5 – Oracle handles the queueing).
 
 Public API
-──────────
+
     profile_schemas(tables: list[TableMeta]) -> list[TableProfile]
 """
 
@@ -37,9 +37,6 @@ from tqdm import tqdm
 
 from app.db import raw_execute
 from app.learning.introspect import TableMeta
-
-
-# ─── Constants ────────────────────────────────────────────────────────────────
 
 # Columns with at most this many distinct values get a top-values histogram.
 _LOW_CARDINALITY_THRESHOLD: int = 50
@@ -65,9 +62,6 @@ _MINMAX_TYPES = frozenset(
     }
 )
 
-
-# ─── Pydantic Models ──────────────────────────────────────────────────────────
-
 class ColumnProfile(BaseModel):
     """Statistical profile of a single column."""
     column_name: str
@@ -83,7 +77,6 @@ class ColumnProfile(BaseModel):
     max_value: Any | None = None
     sample_values: list[Any] = Field(default_factory=list)
 
-
 class TableProfile(BaseModel):
     """Aggregated profile for one table."""
     schema_name: str = Field(..., alias="schema")
@@ -96,9 +89,6 @@ class TableProfile(BaseModel):
     @property
     def full_name(self) -> str:
         return f"{self.schema_name}.{self.table_name}"
-
-
-# ─── SQL Templates ────────────────────────────────────────────────────────────
 
 # Single-pass stats query per column (avoids multiple round-trips).
 # COUNT(col) counts non-NULLs in Oracle – no CASE needed.
@@ -141,22 +131,17 @@ WHERE  {col} IS NOT NULL
 FETCH  FIRST 10 ROWS ONLY
 """
 
-
-# ─── Per-column Profiling ─────────────────────────────────────────────────────
-
 def _safe_float(v: Any, default: float = 0.0) -> float:
     try:
         return float(v) if v is not None else default
     except (TypeError, ValueError):
         return default
 
-
 def _safe_int(v: Any, default: int = 0) -> int:
     try:
         return int(v) if v is not None else default
     except (TypeError, ValueError):
         return default
-
 
 def _profile_column(
     schema: str,
@@ -181,7 +166,6 @@ def _profile_column(
 
     skip_agg = data_type.upper() in _SKIP_AGG_TYPES
 
-    # ── Core stats (total_rows, non_null_count, distinct_count) ──────────────
     non_null_count = total_rows
     distinct_count = 0
     if not skip_agg:
@@ -198,7 +182,6 @@ def _profile_column(
     null_pct = round((null_count / total_rows * 100.0) if total_rows > 0 else 0.0, 2)
     is_low_card = distinct_count > 0 and distinct_count < _LOW_CARDINALITY_THRESHOLD
 
-    # ── Top values (only for low-cardinality, non-LOB columns) ───────────────
     top_values: list[dict[str, Any]] = []
     if is_low_card and not skip_agg:
         try:
@@ -207,7 +190,6 @@ def _profile_column(
         except Exception as exc:  # noqa: BLE001
             logger.debug("Top-values query failed for {}.{}.{}: {}", schema, table, col_name, exc)
 
-    # ── Min / Max ─────────────────────────────────────────────────────────────
     min_val: Any = None
     max_val: Any = None
     if data_type.upper() in _MINMAX_TYPES and not skip_agg:
@@ -219,7 +201,6 @@ def _profile_column(
         except Exception as exc:  # noqa: BLE001
             logger.debug("MinMax query failed for {}.{}.{}: {}", schema, table, col_name, exc)
 
-    # ── Sample values ─────────────────────────────────────────────────────────
     sample_values: list[Any] = []
     if not skip_agg:
         try:
@@ -248,9 +229,6 @@ def _profile_column(
         max_value=max_val,
         sample_values=sample_values,
     )
-
-
-# ─── Public Interface ─────────────────────────────────────────────────────────
 
 def profile_schemas(tables: list[TableMeta]) -> list[TableProfile]:
     """

@@ -6,7 +6,7 @@ into a single ``semantic_layer.json`` file (plus a per-table index) and
 provides helpers for loading, overriding, and patching.
 
 File layout
-───────────
+
   semantic_layer/
     semantic_layer.json   – full nested dict; all tables
     index.json            – summary index for fast lookup
@@ -14,19 +14,19 @@ File layout
     changelog.json        – append-only audit log
 
 Version hash
-────────────
+
 Each ``semantic_layer.json`` includes a ``version`` field: the SHA-256 of
 the full JSON body (computed before writing).  Any change to the content
 will produce a new hash, making it easy to detect staleness.
 
 Override merge
-──────────────
+
 ``overrides.yaml`` uses the structure documented in the file itself.
 At load time, ``_apply_overrides`` deep-merges the YAML onto the JSON in
 memory so the response always reflects operator corrections.
 
 Public API
-──────────
+
     save_semantic_layer(enrichments: list[TableEnrichment]) -> Path
     load_semantic_layer() -> dict | None
     load_table_semantics(full_name: str) -> dict | None
@@ -47,9 +47,6 @@ from loguru import logger
 from app.config import settings
 from app.learning.enrich import TableEnrichment
 
-
-# ─── Internal Helpers ─────────────────────────────────────────────────────────
-
 def _serialize(obj: Any) -> Any:
     """Make objects JSON-serialisable (datetime, Pydantic models, etc.)."""
     if hasattr(obj, "isoformat"):      # datetime / date / time
@@ -58,29 +55,22 @@ def _serialize(obj: Any) -> Any:
         return obj.model_dump()
     return str(obj)
 
-
 def _to_dict(te: TableEnrichment) -> dict[str, Any]:
     """Convert a TableEnrichment to a plain JSON-serialisable dict."""
     d = te.model_dump()
     # Nested Pydantic objects (semantics, etc.) are already dicts after model_dump.
     return d
 
-
 def _semantic_layer_path() -> Path:
     settings.semantic_layer_dir.mkdir(parents=True, exist_ok=True)
     return settings.semantic_layer_dir / "semantic_layer.json"
 
-
 def _index_path() -> Path:
     return settings.semantic_layer_dir / "index.json"
-
 
 def _version_hash(payload: str) -> str:
     """SHA-256 of the JSON body, truncated to 16 hex chars for readability."""
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
-
-
-# ─── Save ─────────────────────────────────────────────────────────────────────
 
 def save_semantic_layer(enrichments: list[TableEnrichment]) -> Path:
     """
@@ -120,7 +110,6 @@ def save_semantic_layer(enrichments: list[TableEnrichment]) -> Path:
         sl_path, len(enrichments), wrapper["version"],
     )
 
-    # ── Write index ──────────────────────────────────────────────────────────
     index: list[dict[str, Any]] = []
     for te in enrichments:
         high_concepts = [
@@ -153,9 +142,6 @@ def save_semantic_layer(enrichments: list[TableEnrichment]) -> Path:
 
     return settings.semantic_layer_dir
 
-
-# ─── Load ─────────────────────────────────────────────────────────────────────
-
 def load_semantic_layer() -> dict[str, Any] | None:
     """
     Load the full semantic layer from disk and apply overrides.
@@ -176,7 +162,6 @@ def load_semantic_layer() -> dict[str, Any] | None:
 
     return data
 
-
 def load_table_semantics(full_name: str) -> dict[str, Any] | None:
     """
     Load semantics for a single table by its full name (SCHEMA.TABLE).
@@ -193,9 +178,6 @@ def load_table_semantics(full_name: str) -> dict[str, Any] | None:
         None,
     )
 
-
-# ─── Overrides ────────────────────────────────────────────────────────────────
-
 def _load_overrides() -> dict[str, Any]:
     if not settings.overrides_file.exists():
         return {}
@@ -205,7 +187,6 @@ def _load_overrides() -> dict[str, Any]:
     except Exception as exc:  # noqa: BLE001
         logger.warning("Failed to load overrides.yaml: {}", exc)
         return {}
-
 
 def _apply_overrides(
     layer: dict[str, Any],
@@ -266,7 +247,6 @@ def _apply_overrides(
 
     return layer
 
-
 def apply_overrides(new_overrides: dict[str, Any]) -> None:
     """
     Merge ``new_overrides`` into ``overrides.yaml`` and log the change.
@@ -288,9 +268,6 @@ def apply_overrides(new_overrides: dict[str, Any]) -> None:
 
     logger.info("Overrides saved to {}", settings.overrides_file)
 
-
-# ─── Utilities ────────────────────────────────────────────────────────────────
-
 def _deep_merge(base: dict[str, Any], override: dict[str, Any]) -> None:
     """Recursively merge ``override`` into ``base`` in place."""
     for k, v in override.items():
@@ -298,7 +275,6 @@ def _deep_merge(base: dict[str, Any], override: dict[str, Any]) -> None:
             _deep_merge(base[k], v)
         else:
             base[k] = v
-
 
 def _changelog_append(entry: dict[str, Any]) -> None:
     settings.changelog_file.parent.mkdir(parents=True, exist_ok=True)

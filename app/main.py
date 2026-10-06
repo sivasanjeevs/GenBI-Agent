@@ -26,9 +26,6 @@ from pydantic import BaseModel
 from app.config import settings
 from app.db import close_pool, init_pool
 
-
-# ─── Lifespan ─────────────────────────────────────────────────────────────────
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Rosetta starting up…")
@@ -36,9 +33,6 @@ async def lifespan(app: FastAPI):
     yield
     close_pool()
     logger.info("Rosetta shut down")
-
-
-# ─── App ──────────────────────────────────────────────────────────────────────
 
 app = FastAPI(
     title="Rosetta – GenBI Agent",
@@ -56,9 +50,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-# ─── Request / Response Models ────────────────────────────────────────────────
 
 class LearnRequest(BaseModel):
     schemas: list[str] | None = None          # defaults to config
@@ -101,13 +92,9 @@ class EvalRunRequest(BaseModel):
     benchmark_file: str | None = None
     runs: int | None = None                   # defaults to config EVAL_RUNS
 
-
-# ─── Routes ───────────────────────────────────────────────────────────────────
-
 @app.get("/health", tags=["System"])
 def health() -> dict[str, str]:
     return {"status": "ok", "version": "0.1.0"}
-
 
 @app.post("/learn", response_model=LearnResponse, tags=["Learning"])
 async def learn(req: LearnRequest, background_tasks: BackgroundTasks):
@@ -154,7 +141,6 @@ async def learn(req: LearnRequest, background_tasks: BackgroundTasks):
         logger.exception("Learning pipeline failed")
         raise HTTPException(status_code=500, detail=str(exc))
 
-
 @app.get("/semantic-layer", tags=["Learning"])
 def get_semantic_layer() -> dict[str, Any]:
     """Return the current semantic layer JSON."""
@@ -165,7 +151,6 @@ def get_semantic_layer() -> dict[str, Any]:
         raise HTTPException(status_code=404, detail="Semantic layer not found. Run /learn first.")
     return layer
 
-
 @app.post("/semantic-layer/override", tags=["Learning"])
 def apply_overrides(req: OverrideRequest) -> dict[str, str]:
     """Apply manual corrections to the semantic layer (recorded in changelog)."""
@@ -173,7 +158,6 @@ def apply_overrides(req: OverrideRequest) -> dict[str, str]:
 
     apply_overrides(req.overrides)
     return {"status": "ok", "message": "Overrides applied and semantic layer updated"}
-
 
 @app.post("/ask", response_model=AskResponse, tags=["Answering"])
 def ask(req: AskRequest) -> AskResponse:
@@ -245,7 +229,6 @@ def ask(req: AskRequest) -> AskResponse:
         logger.exception("Ask pipeline failed")
         raise HTTPException(status_code=500, detail=str(exc))
 
-
 @app.get("/ask/{conversation_id}/history", tags=["Answering"])
 def get_history(conversation_id: str) -> list[dict[str, Any]]:
     """Return conversation history for follow-up questions (Bonus CP5)."""
@@ -255,7 +238,6 @@ def get_history(conversation_id: str) -> list[dict[str, Any]]:
     if not history:
         raise HTTPException(status_code=404, detail="Conversation not found")
     return history
-
 
 @app.post("/eval/run", tags=["Evaluation"])
 async def run_eval(req: EvalRunRequest, background_tasks: BackgroundTasks) -> dict[str, str]:
@@ -269,7 +251,6 @@ async def run_eval(req: EvalRunRequest, background_tasks: BackgroundTasks) -> di
     )
     return {"status": "started", "message": "Evaluation harness running in background"}
 
-
 @app.get("/eval/results", tags=["Evaluation"])
 def eval_results() -> dict[str, Any]:
     """Return the latest evaluation harness results."""
@@ -282,8 +263,6 @@ def eval_results() -> dict[str, Any]:
         raise HTTPException(status_code=404, detail="No eval results found. Run /eval/run first.")
     latest = json.loads(files[0].read_text())
     return latest
-
-# ─── Entry Point ──────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
     import uvicorn

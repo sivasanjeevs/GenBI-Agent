@@ -6,7 +6,7 @@ ranges or literals BEFORE the LLM generates SQL.  This prevents the LLM
 from guessing what "last month" means and makes the generated SQL auditable.
 
 Design principles
-──────────────────
+
 • No LLM – pure Python + regex + dateutil.
 • Half-open ranges: ``col >= start AND col < exclusive_end`` avoids
   double-counting at period boundaries (e.g. midnight on the last day).
@@ -14,7 +14,7 @@ Design principles
 • A ``DateContext`` Pydantic model is the typed output passed downstream.
 
 Supported phrases (case-insensitive)
-──────────────────────────────────────
+
   "today" / "current" / "now"
   "yesterday"
   "last N days" / "last N weeks"
@@ -26,7 +26,7 @@ Supported phrases (case-insensitive)
   ISO dates "2026-08-28"
 
 Public API
-──────────
+
     resolve_dates(question, date_context) -> DateContext
 """
 
@@ -40,9 +40,6 @@ from dateutil.relativedelta import relativedelta
 from loguru import logger
 from pydantic import BaseModel, Field
 
-
-# ─── Pydantic Models ──────────────────────────────────────────────────────────
-
 class DatePeriod(BaseModel):
     """A resolved calendar period (half-open range)."""
     label: str
@@ -53,7 +50,6 @@ class DatePeriod(BaseModel):
     exclusive_end_sql: str   # DATE '2026-10-01'  ← one day past end
     # Inclusive range variant kept for backwards compat
     end_sql: str             # DATE '2026-09-30'
-
 
 class DateContext(BaseModel):
     """Fully resolved date context passed to planner.py."""
@@ -83,9 +79,6 @@ class DateContext(BaseModel):
         lines.append(f"-- Interpretation: {self.interpretation}")
         return "\n".join(lines)
 
-
-# ─── Internal Constants ───────────────────────────────────────────────────────
-
 _MONTH_NAMES: dict[str, int] = {
     "jan": 1, "january": 1,
     "feb": 2, "february": 2,
@@ -105,12 +98,8 @@ _QUARTER_MONTH_RANGE: dict[int, tuple[int, int]] = {
     1: (1, 3), 2: (4, 6), 3: (7, 9), 4: (10, 12)
 }
 
-
-# ─── Date Arithmetic Helpers ──────────────────────────────────────────────────
-
 def _oracle_date(d: date) -> str:
     return f"DATE '{d.isoformat()}'"
-
 
 def _make_period(label: str, start: date, end_inclusive: date) -> DatePeriod:
     """
@@ -130,19 +119,16 @@ def _make_period(label: str, start: date, end_inclusive: date) -> DatePeriod:
         end_sql=_oracle_date(end_inclusive),
     )
 
-
 def _month_range(year: int, month: int) -> tuple[date, date]:
     start = date(year, month, 1)
     end = (start + relativedelta(months=1)) - timedelta(days=1)
     return start, end
-
 
 def _quarter_range(year: int, q: int) -> tuple[date, date]:
     start_month, end_month = _QUARTER_MONTH_RANGE[q]
     start = date(year, start_month, 1)
     end = date(year, end_month, 1) + relativedelta(months=1) - timedelta(days=1)
     return start, end
-
 
 def _parse_reference_date(date_context: str | None) -> date:
     """Return today or parse 'today is YYYY-MM-DD' from an explicit context string."""
@@ -151,9 +137,6 @@ def _parse_reference_date(date_context: str | None) -> date:
         if m:
             return date.fromisoformat(m.group(1))
     return date.today()
-
-
-# ─── Public API ───────────────────────────────────────────────────────────────
 
 def resolve_dates(
     question: str,
@@ -177,7 +160,6 @@ def resolve_dates(
     as_of: str | None = None
     interpretations: list[str] = []
 
-    # ── Deduplicate helper ────────────────────────────────────────────────────
     seen_labels: set[str] = set()
 
     def _add_period(p: DatePeriod) -> None:
@@ -185,7 +167,6 @@ def resolve_dates(
             seen_labels.add(p.label)
             periods.append(p)
 
-    # ── 1. "as of <day> <month> <year>" ──────────────────────────────────────
     as_of_m = re.search(r"as\s+of\s+(\d{1,2})\s+(\w+)\s+(\d{4})", q)
     if as_of_m:
         day, mon_str, year_str = as_of_m.group(1), as_of_m.group(2), as_of_m.group(3)
@@ -195,7 +176,6 @@ def resolve_dates(
             as_of = _oracle_date(d)
             interpretations.append(f"as of {d.isoformat()}")
 
-    # ── 2. ISO date literal "2026-08-28" ─────────────────────────────────────
     if not as_of:
         iso_dates = re.findall(r"\b(\d{4}-\d{2}-\d{2})\b", question)
         if iso_dates:
@@ -203,19 +183,16 @@ def resolve_dates(
             as_of = _oracle_date(d)
             interpretations.append(f"as of {d.isoformat()}")
 
-    # ── 3. "today" / "current" / "now" ───────────────────────────────────────
     if re.search(r"\b(today|current|now)\b", q):
         as_of = as_of or _oracle_date(today)
         interpretations.append(f"current / today = {today.isoformat()}")
 
-    # ── 4. "yesterday" ───────────────────────────────────────────────────────
     if "yesterday" in q:
         yesterday = today - timedelta(days=1)
         p = _make_period("yesterday", yesterday, yesterday)
         _add_period(p)
         interpretations.append(f"yesterday = {yesterday.isoformat()}")
 
-    # ── 5. "last N days" ─────────────────────────────────────────────────────
     m_days = re.search(r"last\s+(\d+)\s+days?", q)
     if m_days:
         n = int(m_days.group(1))
@@ -224,7 +201,6 @@ def resolve_dates(
         _add_period(p)
         interpretations.append(f"last {n} days = {start.isoformat()} to {(today - timedelta(days=1)).isoformat()}")
 
-    # ── 6. "last N weeks" ────────────────────────────────────────────────────
     m_weeks = re.search(r"last\s+(\d+)\s+weeks?", q)
     if m_weeks:
         n = int(m_weeks.group(1))
@@ -235,7 +211,6 @@ def resolve_dates(
             f"last {n} weeks = {start.isoformat()} to {(today - timedelta(days=1)).isoformat()}"
         )
 
-    # ── 7. "last month" ──────────────────────────────────────────────────────
     if "last month" in q:
         ref = today - relativedelta(months=1)
         s, e = _month_range(ref.year, ref.month)
@@ -243,35 +218,30 @@ def resolve_dates(
         _add_period(p)
         interpretations.append(f"last month = {s.strftime('%B %Y')}")
 
-    # ── 8. "this month" ──────────────────────────────────────────────────────
     if "this month" in q:
         s, e = _month_range(today.year, today.month)
         p = _make_period(f"{today.year}-{today.month:02d}", s, e)
         _add_period(p)
         interpretations.append(f"this month = {s.strftime('%B %Y')}")
 
-    # ── 9. "last year" ───────────────────────────────────────────────────────
     if "last year" in q:
         y = today.year - 1
         p = _make_period(str(y), date(y, 1, 1), date(y, 12, 31))
         _add_period(p)
         interpretations.append(f"last year = {y}")
 
-    # ── 10. "this year" ──────────────────────────────────────────────────────
     if "this year" in q:
         s = date(today.year, 1, 1)
         p = _make_period(str(today.year), s, date(today.year, 12, 31))
         _add_period(p)
         interpretations.append(f"this year = {today.year}")
 
-    # ── 11. "year to date" / "ytd" ───────────────────────────────────────────
     if re.search(r"\b(year.?to.?date|ytd)\b", q):
         s = date(today.year, 1, 1)
         p = _make_period(f"YTD {today.year}", s, today)
         _add_period(p)
         interpretations.append(f"year to date = {s.isoformat()} to {today.isoformat()}")
 
-    # ── 12. Named months ─────────────────────────────────────────────────────
     # Sort by length descending so "september" is matched before "sep"
     for mon_name in sorted(_MONTH_NAMES.keys(), key=len, reverse=True):
         if not re.search(rf"\b{mon_name}\b", q):
@@ -290,7 +260,6 @@ def resolve_dates(
             f"{mon_name.title()} → {s.isoformat()} to {e.isoformat()}"
         )
 
-    # ── 13. Quarters "Q1", "q3 2026" ─────────────────────────────────────────
     for qm in re.finditer(r"\bq([1-4])\s*(\d{4})?\b", q):
         qnum = int(qm.group(1))
         yr = int(qm.group(2)) if qm.group(2) else today.year

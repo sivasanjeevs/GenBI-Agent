@@ -18,7 +18,6 @@ from typing import Annotated
 from pydantic import AliasChoices, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -27,7 +26,6 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    # ── Oracle / DB ───────────────────────────────────────────────────────────
     oracle_host: str = Field(
         "20.102.78.61",
         description="Oracle DB host",
@@ -71,7 +69,6 @@ class Settings(BaseSettings):
     def dsn(self) -> str:
         return f"{self.oracle_host}:{self.oracle_port}/{self.oracle_service}"
 
-    # ── LLM ───────────────────────────────────────────────────────────────────
     llm_provider: str = Field(
         "gemini",
         description="LLM provider: gemini | openai | anthropic | ollama",
@@ -107,32 +104,26 @@ class Settings(BaseSettings):
         # across pydantic versions, so just return v; runtime check is in llm.py.
         return v
 
-    # ── LLM Disk Cache ────────────────────────────────────────────────────────
     llm_cache_enabled: bool = Field(True, description="Cache LLM responses to disk")
     llm_cache_dir: Path = Field(Path(".llm_cache"), description="Cache directory")
 
-    # ── Semantic Layer ────────────────────────────────────────────────────────
     semantic_layer_dir: Path = Field(
         Path("semantic_layer"), description="Semantic layer output dir"
     )
     overrides_file: Path = Field(Path("semantic_layer/overrides.yaml"))
     changelog_file: Path = Field(Path("semantic_layer/changelog.json"))
 
-    # ── Eval ──────────────────────────────────────────────────────────────────
     eval_output_dir: Path = Field(Path("eval_output"), description="Eval results dir")
     benchmark_file: Path = Field(Path("benchmark/questions.json"))
     eval_runs: int = Field(3, description="Repetitions per question for consistency")
 
-    # ── Server ────────────────────────────────────────────────────────────────
     api_host: str = Field("0.0.0.0")
     api_port: int = Field(8000)
     log_level: str = Field("INFO")
 
-    # ── SQL Execution ─────────────────────────────────────────────────────────
     sql_max_rows: int = Field(500, description="Hard cap on rows returned")
     sql_timeout_seconds: int = Field(30, description="Query timeout in seconds")
     sql_repair_attempts: int = Field(3, description="Auto-repair retry limit")
-
 
 # Singleton – import this everywhere
 settings = Settings()

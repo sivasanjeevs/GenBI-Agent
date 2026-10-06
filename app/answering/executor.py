@@ -6,7 +6,7 @@ failure using a targeted LLM call.  All execution goes through db.run_query()
 (Phase 1) which enforces the SQL guard, row caps, and timeouts.
 
 Failure detection (any one triggers repair)
-─────────────────────────────────────────────
+
 1. db.run_query() raises ValueError (guard failure) or RuntimeError (ORA-*).
 2. Result is structurally wrong:
    • Empty result set (0 rows) for a non-aggregate query.
@@ -14,7 +14,7 @@ Failure detection (any one triggers repair)
      known row count suggests a missing join condition).
 
 Repair loop
-────────────
+
 1. Format a targeted repair prompt including:
    • The error message or structural-failure description.
    • The failed SQL.
@@ -25,7 +25,7 @@ Repair loop
 5. After all attempts fail → set state.abstained = True, do NOT raise.
 
 Public API
-──────────
+
     execute_with_repair(state: AnsweringState) -> AnsweringState
     execute_with_vote(state, runs) -> AnsweringState   (eval harness)
 """
@@ -51,9 +51,6 @@ MAX_REPAIR_ATTEMPTS: int = 3
 
 # Row-count multiplier that suggests a fan-out (missing join predicate).
 _FANOUT_MULTIPLIER: int = 10
-
-
-# ─── Structural Failure Detection ────────────────────────────────────────────
 
 def _detect_structural_failure(
     result: dict[str, Any],
@@ -106,9 +103,6 @@ def _detect_structural_failure(
 
     return None
 
-
-# ─── Repair Prompt ────────────────────────────────────────────────────────────
-
 _REPAIR_PROMPT = """You are an Oracle 23ai SQL expert. Fix the following failed query.
 
 ORIGINAL QUESTION: "{question}"
@@ -134,7 +128,6 @@ ORACLE SQL RULES:
 - Fix only the root cause. Return the complete corrected SELECT statement.
 - No markdown fences. No semicolons.
 """
-
 
 def _build_schema_hint(state: AnsweringState) -> str:
     """
@@ -186,7 +179,6 @@ def _build_schema_hint(state: AnsweringState) -> str:
 
     return "\n".join(lines)
 
-
 def _repair_sql(
     state: AnsweringState,
     error: str,
@@ -213,9 +205,6 @@ def _repair_sql(
     except Exception as exc:  # noqa: BLE001
         logger.error("Repair LLM call failed: {}", exc)
         return None
-
-
-# ─── Public Interface ─────────────────────────────────────────────────────────
 
 def execute_with_repair(state: AnsweringState) -> AnsweringState:
     """
@@ -250,13 +239,13 @@ def execute_with_repair(state: AnsweringState) -> AnsweringState:
             last_error = str(exc)
             logger.warning("SQL attempt {} failed: {}", attempt, last_error[:300])
         else:
-            # ── Structural failure check ──────────────────────────────────────
+
             structural_err = _detect_structural_failure(result, expected_max)
             if structural_err:
                 last_error = structural_err
                 logger.warning("Structural failure on attempt {}: {}", attempt, structural_err)
             else:
-                # ── Success ───────────────────────────────────────────────────
+
                 state.result = result
                 state.attempts = attempt
                 state.repaired = attempt > 1
@@ -266,7 +255,6 @@ def execute_with_repair(state: AnsweringState) -> AnsweringState:
                 )
                 return state
 
-        # ── Repair if not on last attempt ─────────────────────────────────────
         if attempt < MAX_REPAIR_ATTEMPTS:
             repaired_sql = _repair_sql(state, last_error)
             if repaired_sql:
@@ -275,7 +263,6 @@ def execute_with_repair(state: AnsweringState) -> AnsweringState:
             else:
                 logger.warning("Repair failed; keeping previous SQL for next attempt.")
 
-    # ── Abstain ───────────────────────────────────────────────────────────────
     total_elapsed_ms = (time.perf_counter() - loop_start) * 1000
     state.abstained = True
     state.abstain_reason = (
@@ -295,7 +282,6 @@ def execute_with_repair(state: AnsweringState) -> AnsweringState:
         MAX_REPAIR_ATTEMPTS, total_elapsed_ms, last_error,
     )
     return state
-
 
 def execute_with_vote(
     state: AnsweringState,

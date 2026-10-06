@@ -2,7 +2,7 @@
 db.py – Oracle DB connection pool + hardened SQL execution.
 
 Architecture
-────────────
+
 • Uses oracledb in *thin* mode (no Oracle Instant Client needed).
 • A small connection pool (min=1, max=5) is created lazily on first use
   and shared for the lifetime of the process.
@@ -11,7 +11,7 @@ Architecture
 • raw_execute() is a bypass for known-safe internal introspection queries.
 
 Security pipeline (run_query)
-──────────────────────────────
+
 1. Strip trailing semicolons and whitespace.
 2. Parse with sqlglot (Oracle dialect) – reject anything that is not a
    single SELECT statement (no DML / DDL / multi-statement).
@@ -33,9 +33,6 @@ from loguru import logger
 
 from app.config import settings
 
-
-# ─── Type Aliases ────────────────────────────────────────────────────────────
-
 QueryResult = dict[str, Any]
 """
 {
@@ -47,11 +44,7 @@ QueryResult = dict[str, Any]
 }
 """
 
-
-# ─── Connection Pool ──────────────────────────────────────────────────────────
-
 _pool: oracledb.ConnectionPool | None = None
-
 
 def init_pool() -> None:
     """Initialise the Oracle connection pool (call once at startup).
@@ -78,7 +71,6 @@ def init_pool() -> None:
     )
     logger.success("Oracle pool ready (thin mode)")
 
-
 def close_pool() -> None:
     """Drain and close the pool gracefully (call at shutdown)."""
     global _pool
@@ -86,7 +78,6 @@ def close_pool() -> None:
         _pool.close()
         _pool = None
         logger.info("Oracle pool closed")
-
 
 @contextmanager
 def get_connection() -> Generator[oracledb.Connection, None, None]:
@@ -98,9 +89,6 @@ def get_connection() -> Generator[oracledb.Connection, None, None]:
         yield conn
     finally:
         _pool.release(conn)  # type: ignore[union-attr]
-
-
-# ─── SQL Guard ────────────────────────────────────────────────────────────────
 
 #: Regex-level quick-reject (fast path, before sqlglot parse)
 import re as _re
@@ -114,7 +102,6 @@ _BLOCKED = _re.compile(
     _re.IGNORECASE,
 )
 
-
 def _strip_sql(sql: str) -> str:
     """Strip whitespace, trailing semicolons, and markdown fences."""
     # Remove optional ```sql ... ``` fences that LLMs sometimes add
@@ -123,7 +110,6 @@ def _strip_sql(sql: str) -> str:
         sql = fenced.group(1)
     # Strip trailing semicolons (multiple) and whitespace
     return sql.strip().rstrip(";").strip()
-
 
 def _guard_select_only(sql: str) -> str:
     """
@@ -136,7 +122,6 @@ def _guard_select_only(sql: str) -> str:
     """
     sql = _strip_sql(sql)
 
-    # --- 1. Keyword blocklist (fast) ---
     m = _BLOCKED.search(sql)
     if m:
         raise ValueError(
@@ -144,7 +129,6 @@ def _guard_select_only(sql: str) -> str:
             "Only SELECT queries are allowed."
         )
 
-    # --- 2. Parse with sqlglot (Oracle dialect) ---
     try:
         statements = sqlglot.parse(sql, dialect="oracle")
     except sqlglot.errors.ParseError as exc:
@@ -153,7 +137,6 @@ def _guard_select_only(sql: str) -> str:
     if not statements or all(s is None for s in statements):
         raise ValueError("Empty or un-parseable SQL statement.")
 
-    # --- 3. Enforce single SELECT ---
     non_none = [s for s in statements if s is not None]
     if len(non_none) != 1:
         raise ValueError(
@@ -170,11 +153,7 @@ def _guard_select_only(sql: str) -> str:
     logger.debug("SQL guard passed")
     return sql
 
-
-# ─── Value Serialisation ──────────────────────────────────────────────────────
-
 import datetime as _dt
-
 
 def _to_json_safe(value: Any) -> Any:
     """
@@ -211,13 +190,8 @@ def _to_json_safe(value: Any) -> Any:
             return "<LOB read error>"
     return value
 
-
 def _serialise_row(row: tuple[Any, ...], columns: list[str]) -> dict[str, Any]:
     return {col: _to_json_safe(val) for col, val in zip(columns, row)}
-
-
-# ─── Public Interface ─────────────────────────────────────────────────────────
-
 
 def run_query(
     sql: str,
@@ -295,7 +269,6 @@ def run_query(
         "sql": clean,
     }
 
-
 def safe_execute(
     sql: str,
     params: dict[str, Any] | None = None,
@@ -339,7 +312,6 @@ def safe_execute(
         "elapsed_ms": round(elapsed_ms, 2),
         "sql": clean,
     }
-
 
 def raw_execute(
     sql: str,

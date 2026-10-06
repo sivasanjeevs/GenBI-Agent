@@ -5,7 +5,7 @@ Takes the raw query result and the full AnsweringState and produces a
 human-readable plain-English response explaining what was found and how.
 
 Two structured LLM calls (both via call_llm_structured)
-──────────────────────────────────────────────────────────
+
 Call 1 → FriendlyAnswer   (answer text + explanation + chart suggestion)
 Call 2 → (implicit) None  – chart is included in Call 1's response
 
@@ -14,7 +14,7 @@ multi-turn follow-up support.  In production, replace _conversations with
 a Redis or database-backed store.
 
 Public API
-──────────
+
     compose_answer(state, question_id, conversation_id, include_chart) -> dict
     get_conversation_history(conversation_id) -> list[dict]
 """
@@ -36,9 +36,6 @@ from pydantic import BaseModel, Field
 from app.answering.planner import AnsweringState
 from app.llm import call_llm_structured
 
-
-# ─── Pydantic Response Models ─────────────────────────────────────────────────
-
 class ChartSuggestion(BaseModel):
     """Optional visualisation suggestion."""
     chart_type: str = Field(
@@ -49,7 +46,6 @@ class ChartSuggestion(BaseModel):
     y_column: str | None = Field(None, description="Column name for y-axis, or null")
     title: str = Field("", description="Short chart title")
     reason: str = Field("", description="Why this chart type suits the data")
-
 
 class FriendlyAnswer(BaseModel):
     """LLM-generated plain-English answer."""
@@ -70,7 +66,6 @@ class FriendlyAnswer(BaseModel):
         description="Best visualisation for these results, or null if not applicable.",
     )
 
-
 class FollowUpSuggestions(BaseModel):
     """LLM-generated follow-up question suggestions."""
     suggestions: list[str] = Field(
@@ -81,14 +76,9 @@ class FollowUpSuggestions(BaseModel):
         ),
     )
 
-
-# ─── In-Memory Conversation Store ────────────────────────────────────────────
 # Replace with Redis / DB in production.
 
 _conversations: dict[str, list[dict[str, Any]]] = {}
-
-
-# ─── Prompt ───────────────────────────────────────────────────────────────────
 
 _COMPOSE_PROMPT = """You are a data analyst presenting results to a business user. Be direct and concise.
 
@@ -130,15 +120,11 @@ Rules:
 - Keep each suggestion under 15 words.
 """
 
-
-# ─── Helpers ──────────────────────────────────────────────────────────────────
-
 def _results_preview(result: dict[str, Any], max_rows: int = 20) -> str:
     rows = result.get("rows", [])[:max_rows]
     if not rows:
         return "(no rows returned)"
     return json.dumps(rows, indent=2, default=str)
-
 
 def _generate_chart_base64(chart_sugg: ChartSuggestion, rows: list[dict[str, Any]]) -> str | None:
     if not rows or chart_sugg.chart_type == "none" or chart_sugg.chart_type not in ["bar", "line", "pie", "scatter"]:
@@ -219,7 +205,6 @@ def _generate_chart_base64(chart_sugg: ChartSuggestion, rows: list[dict[str, Any
         plt.close(fig)
         return None
 
-
 def _store_turn(
     conversation_id: str | None,
     question_id: str,
@@ -241,7 +226,6 @@ def _store_turn(
         }
     )
 
-
 def _generate_followups(question: str, answer: str, row_count: int) -> list[str]:
     """Ask LLM to generate 3 follow-up question suggestions."""
     prompt = _FOLLOWUP_PROMPT.format(
@@ -255,9 +239,6 @@ def _generate_followups(question: str, answer: str, row_count: int) -> list[str]
     except Exception as exc:  # noqa: BLE001
         logger.warning("Follow-up generation failed: {}", exc)
         return []
-
-
-# ─── Public Interface ─────────────────────────────────────────────────────────
 
 def compose_answer(
     state: AnsweringState,
@@ -347,7 +328,6 @@ def compose_answer(
         question_id, row_count, state.abstained,
     )
     return response
-
 
 def get_conversation_history(conversation_id: str) -> list[dict[str, Any]]:
     """Return all turns for a conversation ID (for multi-turn follow-up)."""
