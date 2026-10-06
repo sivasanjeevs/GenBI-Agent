@@ -71,6 +71,17 @@ class FriendlyAnswer(BaseModel):
     )
 
 
+class FollowUpSuggestions(BaseModel):
+    """LLM-generated follow-up question suggestions."""
+    suggestions: list[str] = Field(
+        default_factory=list,
+        description=(
+            "3 short, concrete follow-up questions the user might ask next. "
+            "Each must be a full question in plain English, directly related to the answer."
+        ),
+    )
+
+
 # ─── In-Memory Conversation Store ────────────────────────────────────────────
 # Replace with Redis / DB in production.
 
@@ -103,6 +114,20 @@ INSTRUCTIONS:
 6. In the chart field, suggest the best visualisation type for this data.
    - Use "none" if results are a single number or not suitable for charting.
    - "bar" for ranked/grouped counts; "line" for time series; "pie" for <=6 categories.
+"""
+
+_FOLLOWUP_PROMPT = """You are a data analyst. A user asked a business question and got an answer.
+Suggest exactly 3 concise follow-up questions they might want to ask next.
+
+ORIGINAL QUESTION: "{question}"
+ANSWER SUMMARY: "{answer}"
+DATA CONTEXT: {row_count} rows returned.
+
+Rules:
+- Each suggestion must be a full, standalone question in plain English.
+- Make them progressively deeper: drill-down, comparison, or trend analysis.
+- Do NOT repeat the original question.
+- Keep each suggestion under 15 words.
 """
 
 
@@ -211,9 +236,25 @@ def _store_turn(
             "question": question,
             "answer": response.get("answer"),
             "sql": response.get("sql"),
+            "row_count": response.get("row_count", 0),
             "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         }
     )
+
+
+def _generate_followups(question: str, answer: str, row_count: int) -> list[str]:
+    """Ask LLM to generate 3 follow-up question suggestions."""
+    prompt = _FOLLOWUP_PROMPT.format(
+        question=question,
+        answer=answer[:400],
+        row_count=row_count,
+    )
+    try:
+        result: FollowUpSuggestions = call_llm_structured(prompt, FollowUpSuggestions)
+        return [s.strip() for s in result.suggestions if s.strip()][:3]
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Follow-up generation failed: {}", exc)
+        return []
 
 
 # ─── Public Interface ─────────────────────────────────────────────────────────
@@ -264,6 +305,12 @@ def compose_answer(
             b64 = _generate_chart_base64(friendly.chart, rows)
             if b64:
                 chart["image_base64"] = b64
+
+        # Generate follow-up suggestions (only for non-abstained answers)
+        followups: list[str] = []
+        if not state.abstained:
+            followups = _generate_followups(state.question, friendly.answer, row_count)
+
     except Exception as exc:  # noqa: BLE001
         logger.warning("Compose LLM call failed: {} – using fallback.", exc)
         if state.abstained:
@@ -275,6 +322,7 @@ def compose_answer(
             answer_text = f"The query returned {row_count} row(s)."
         explanation = ""
         chart = None
+        followups = []
 
     response: dict[str, Any] = {
         "question_id": question_id,
@@ -287,6 +335,7 @@ def compose_answer(
         "date_interpretation": date_interp or None,
         "explanation": explanation,
         "chart": chart,
+        "follow_up_suggestions": followups,
         "attempts": state.attempts,
         "repaired": state.repaired,
         "abstained": state.abstained,

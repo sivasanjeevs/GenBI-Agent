@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-10-06T04:24:36Z",
+  "timestamp": "2026-10-06T03:14:56Z",
   "model": "gemini-3.5-flash-lite",
   "total_questions": 6,
   "answerable": 6,
@@ -8,9 +8,9 @@
   "accuracy": 0.16666666666666666,
   "consistency_rate": 0.6666666666666666,
   "answerability_rate": 1.0,
-  "avg_retries": 0.5,
-  "p50_latency_ms": 3686.574612998811,
-  "p95_latency_ms": 57430.181948999234,
+  "avg_retries": 0.6111111111111112,
+  "p50_latency_ms": 3751.1352889996488,
+  "p95_latency_ms": 42763.15111299482,
   "results": [
     {
       "question_id": "1",
@@ -342,8 +342,8 @@
             }
           ],
           "row_count": 64,
-          "elapsed_ms": 1683.81,
-          "total_latency_ms": 4013.775229002931,
+          "elapsed_ms": 2193.13,
+          "total_latency_ms": 6011.0284610054805,
           "attempts": 1,
           "repaired": false,
           "abstained": false,
@@ -675,8 +675,8 @@
             }
           ],
           "row_count": 64,
-          "elapsed_ms": 966.29,
-          "total_latency_ms": 2559.6014609982376,
+          "elapsed_ms": 1107.17,
+          "total_latency_ms": 2974.988674999622,
           "attempts": 1,
           "repaired": false,
           "abstained": false,
@@ -684,7 +684,7 @@
           "model": "gemini-3.5-flash-lite"
         },
         {
-          "sql": "-- Answers: List the active shops in Istanbul with their shop number, district and sales manager\nSELECT t.shop_num, t.shop_district, t.sales_manager_user_name FROM VID.D_SHOP t WHERE t.shop_status = 'Active' AND t.shop_city = '\u0130STANBUL' ORDER BY t.shop_num",
+          "sql": "-- Answers: List the active shops in Istanbul with their shop number, district and sales manager.\nSELECT s.shop_num, s.shop_district, s.sales_manager_user_name FROM VID.D_SHOP s WHERE s.shop_status = 'Active' AND s.shop_city = '\u0130STANBUL' ORDER BY s.shop_num",
           "rows": [
             {
               "shop_num": "VS005001",
@@ -1008,8 +1008,8 @@
             }
           ],
           "row_count": 64,
-          "elapsed_ms": 897.53,
-          "total_latency_ms": 3424.9736229976406,
+          "elapsed_ms": 978.69,
+          "total_latency_ms": 2921.2626710068434,
           "attempts": 1,
           "repaired": false,
           "abstained": false,
@@ -1019,7 +1019,7 @@
       ],
       "is_consistent": true,
       "is_correct": false,
-      "avg_latency_ms": 3332.78343766627,
+      "avg_latency_ms": 3969.093269003982,
       "avg_retries": 0.0,
       "success_rate": 1.0
     },
@@ -1029,104 +1029,104 @@
       "difficulty": "Easy",
       "runs": [
         {
-          "sql": "-- Answers: How many phone campaigns are available for sale, by device\nSELECT t.device_commercial_name, COUNT(DISTINCT t.offer_id) AS campaign_count FROM VID.D_DEVICE_OFFERING t WHERE t.product_sub_type_cd = 'PHONE' AND t.offer_edt >= SYSDATE AND t.brightstar_end_dt = TO_DATE('4712-12-31 23:59:59', 'YYYY-MM-DD HH24:MI:SS') GROUP BY t.device_commercial_name ORDER BY campaign_count DESC",
+          "sql": "-- Answers: How many phone campaigns are available for sale, by device\nSELECT t1.device_commercial_name, COUNT(DISTINCT t1.offer_id) AS phone_campaign_count FROM VID.D_DEVICE_OFFERING t1 WHERE t1.product_sub_type_cd = 'PHONE' AND t1.offer_edt >= SYSDATE AND t1.brightstar_end_dt = TO_DATE('4712-12-31 23:59:59', 'YYYY-MM-DD HH24:MI:SS') GROUP BY t1.device_commercial_name ORDER BY phone_campaign_count DESC",
           "rows": [
             {
               "device_commercial_name": "Samsung Galaxy A55",
-              "campaign_count": 6
+              "phone_campaign_count": 6
             },
             {
               "device_commercial_name": "Reeder S19 Max Pro",
-              "campaign_count": 4
+              "phone_campaign_count": 4
             },
             {
               "device_commercial_name": "Honor X8b",
-              "campaign_count": 4
+              "phone_campaign_count": 4
             },
             {
               "device_commercial_name": "vivo Y36",
-              "campaign_count": 4
+              "phone_campaign_count": 4
             },
             {
               "device_commercial_name": "TCL 50 SE",
-              "campaign_count": 4
+              "phone_campaign_count": 4
             },
             {
               "device_commercial_name": "Samsung Galaxy A35",
-              "campaign_count": 4
+              "phone_campaign_count": 4
             },
             {
               "device_commercial_name": "Xiaomi Redmi Note 14",
-              "campaign_count": 4
+              "phone_campaign_count": 4
             },
             {
               "device_commercial_name": "Xiaomi Redmi Note 13 Pro",
-              "campaign_count": 4
+              "phone_campaign_count": 4
             },
             {
               "device_commercial_name": "Tecno Spark 20",
-              "campaign_count": 4
+              "phone_campaign_count": 4
             },
             {
               "device_commercial_name": "General Mobile GM 24",
-              "campaign_count": 4
+              "phone_campaign_count": 4
             },
             {
               "device_commercial_name": "Xiaomi Redmi 13C",
-              "campaign_count": 3
+              "phone_campaign_count": 3
             },
             {
               "device_commercial_name": "iPhone 16",
-              "campaign_count": 3
+              "phone_campaign_count": 3
             },
             {
               "device_commercial_name": "iPhone 16 Pro Max",
-              "campaign_count": 3
+              "phone_campaign_count": 3
             },
             {
               "device_commercial_name": "Huawei nova 12 SE",
-              "campaign_count": 3
+              "phone_campaign_count": 3
             },
             {
               "device_commercial_name": "Samsung Galaxy A16",
-              "campaign_count": 3
+              "phone_campaign_count": 3
             },
             {
               "device_commercial_name": "Samsung Galaxy S24",
-              "campaign_count": 2
+              "phone_campaign_count": 2
             },
             {
               "device_commercial_name": "iPhone 16 Pro",
-              "campaign_count": 2
+              "phone_campaign_count": 2
             },
             {
               "device_commercial_name": "Samsung Galaxy Z Flip6",
-              "campaign_count": 2
+              "phone_campaign_count": 2
             },
             {
               "device_commercial_name": "realme C67",
-              "campaign_count": 2
+              "phone_campaign_count": 2
             },
             {
               "device_commercial_name": "Samsung Galaxy S24 FE",
-              "campaign_count": 1
+              "phone_campaign_count": 1
             },
             {
               "device_commercial_name": "iPhone 15",
-              "campaign_count": 1
+              "phone_campaign_count": 1
             },
             {
               "device_commercial_name": "Samsung Galaxy S23",
-              "campaign_count": 1
+              "phone_campaign_count": 1
             },
             {
               "device_commercial_name": "Oppo A79",
-              "campaign_count": 1
+              "phone_campaign_count": 1
             }
           ],
           "row_count": 23,
-          "elapsed_ms": 1186.19,
-          "total_latency_ms": 3219.0373449993785,
+          "elapsed_ms": 998.27,
+          "total_latency_ms": 3198.8630880005076,
           "attempts": 1,
           "repaired": false,
           "abstained": false,
@@ -1230,8 +1230,8 @@
             }
           ],
           "row_count": 23,
-          "elapsed_ms": 1453.83,
-          "total_latency_ms": 3532.127254999068,
+          "elapsed_ms": 1052.81,
+          "total_latency_ms": 3802.7928000010434,
           "attempts": 1,
           "repaired": false,
           "abstained": false,
@@ -1239,104 +1239,104 @@
           "model": "gemini-3.5-flash-lite"
         },
         {
-          "sql": "-- Answers: How many phone campaigns are available for sale, by device\nSELECT t1.device_commercial_name, COUNT(DISTINCT t1.offer_id) AS phone_campaign_count FROM VID.D_DEVICE_OFFERING t1 WHERE t1.product_sub_type_cd = 'PHONE' AND t1.offer_edt >= SYSDATE AND t1.brightstar_end_dt = TO_DATE('4712-12-31 23:59:59', 'YYYY-MM-DD HH24:MI:SS') GROUP BY t1.device_commercial_name ORDER BY phone_campaign_count DESC",
+          "sql": "-- Answers: How many phone campaigns are available for sale, by device\nSELECT t1.device_commercial_name, COUNT(DISTINCT t1.offer_id) AS campaign_count FROM VID.D_DEVICE_OFFERING t1 WHERE t1.product_sub_type_cd = 'PHONE' AND t1.offer_edt >= SYSDATE AND t1.brightstar_end_dt = TO_DATE('4712-12-31 23:59:59', 'YYYY-MM-DD HH24:MI:SS') GROUP BY t1.device_commercial_name",
           "rows": [
             {
-              "device_commercial_name": "Samsung Galaxy A55",
-              "phone_campaign_count": 6
-            },
-            {
-              "device_commercial_name": "Reeder S19 Max Pro",
-              "phone_campaign_count": 4
-            },
-            {
-              "device_commercial_name": "Honor X8b",
-              "phone_campaign_count": 4
-            },
-            {
-              "device_commercial_name": "vivo Y36",
-              "phone_campaign_count": 4
-            },
-            {
-              "device_commercial_name": "TCL 50 SE",
-              "phone_campaign_count": 4
-            },
-            {
-              "device_commercial_name": "Samsung Galaxy A35",
-              "phone_campaign_count": 4
-            },
-            {
-              "device_commercial_name": "Xiaomi Redmi Note 14",
-              "phone_campaign_count": 4
-            },
-            {
-              "device_commercial_name": "Xiaomi Redmi Note 13 Pro",
-              "phone_campaign_count": 4
-            },
-            {
-              "device_commercial_name": "Tecno Spark 20",
-              "phone_campaign_count": 4
-            },
-            {
-              "device_commercial_name": "General Mobile GM 24",
-              "phone_campaign_count": 4
-            },
-            {
-              "device_commercial_name": "Xiaomi Redmi 13C",
-              "phone_campaign_count": 3
+              "device_commercial_name": "iPhone 16 Pro",
+              "campaign_count": 2
             },
             {
               "device_commercial_name": "iPhone 16",
-              "phone_campaign_count": 3
-            },
-            {
-              "device_commercial_name": "iPhone 16 Pro Max",
-              "phone_campaign_count": 3
-            },
-            {
-              "device_commercial_name": "Huawei nova 12 SE",
-              "phone_campaign_count": 3
-            },
-            {
-              "device_commercial_name": "Samsung Galaxy A16",
-              "phone_campaign_count": 3
-            },
-            {
-              "device_commercial_name": "Samsung Galaxy S24",
-              "phone_campaign_count": 2
-            },
-            {
-              "device_commercial_name": "iPhone 16 Pro",
-              "phone_campaign_count": 2
-            },
-            {
-              "device_commercial_name": "Samsung Galaxy Z Flip6",
-              "phone_campaign_count": 2
-            },
-            {
-              "device_commercial_name": "realme C67",
-              "phone_campaign_count": 2
-            },
-            {
-              "device_commercial_name": "Samsung Galaxy S24 FE",
-              "phone_campaign_count": 1
+              "campaign_count": 3
             },
             {
               "device_commercial_name": "iPhone 15",
-              "phone_campaign_count": 1
+              "campaign_count": 1
             },
             {
-              "device_commercial_name": "Samsung Galaxy S23",
-              "phone_campaign_count": 1
+              "device_commercial_name": "Samsung Galaxy S24",
+              "campaign_count": 2
+            },
+            {
+              "device_commercial_name": "Samsung Galaxy S24 FE",
+              "campaign_count": 1
+            },
+            {
+              "device_commercial_name": "Samsung Galaxy Z Flip6",
+              "campaign_count": 2
+            },
+            {
+              "device_commercial_name": "Samsung Galaxy A55",
+              "campaign_count": 6
+            },
+            {
+              "device_commercial_name": "Xiaomi Redmi Note 14",
+              "campaign_count": 4
+            },
+            {
+              "device_commercial_name": "Xiaomi Redmi Note 13 Pro",
+              "campaign_count": 4
+            },
+            {
+              "device_commercial_name": "Xiaomi Redmi 13C",
+              "campaign_count": 3
             },
             {
               "device_commercial_name": "Oppo A79",
-              "phone_campaign_count": 1
+              "campaign_count": 1
+            },
+            {
+              "device_commercial_name": "realme C67",
+              "campaign_count": 2
+            },
+            {
+              "device_commercial_name": "Tecno Spark 20",
+              "campaign_count": 4
+            },
+            {
+              "device_commercial_name": "Samsung Galaxy A35",
+              "campaign_count": 4
+            },
+            {
+              "device_commercial_name": "Samsung Galaxy A16",
+              "campaign_count": 3
+            },
+            {
+              "device_commercial_name": "General Mobile GM 24",
+              "campaign_count": 4
+            },
+            {
+              "device_commercial_name": "Huawei nova 12 SE",
+              "campaign_count": 3
+            },
+            {
+              "device_commercial_name": "vivo Y36",
+              "campaign_count": 4
+            },
+            {
+              "device_commercial_name": "Samsung Galaxy S23",
+              "campaign_count": 1
+            },
+            {
+              "device_commercial_name": "iPhone 16 Pro Max",
+              "campaign_count": 3
+            },
+            {
+              "device_commercial_name": "Honor X8b",
+              "campaign_count": 4
+            },
+            {
+              "device_commercial_name": "TCL 50 SE",
+              "campaign_count": 4
+            },
+            {
+              "device_commercial_name": "Reeder S19 Max Pro",
+              "campaign_count": 4
             }
           ],
           "row_count": 23,
-          "elapsed_ms": 1204.93,
-          "total_latency_ms": 3071.7869880027138,
+          "elapsed_ms": 773.23,
+          "total_latency_ms": 3008.574829000281,
           "attempts": 1,
           "repaired": false,
           "abstained": false,
@@ -1346,7 +1346,7 @@
       ],
       "is_consistent": true,
       "is_correct": true,
-      "avg_latency_ms": 3274.317196000387,
+      "avg_latency_ms": 3336.743572333944,
       "avg_retries": 0.0,
       "success_rate": 1.0
     },
@@ -1355,47 +1355,6 @@
       "question": "Which customer segment had the highest number of unique customers assigned in June 2025?",
       "difficulty": "Medium",
       "runs": [
-        {
-          "sql": "-- Answers: Customer segment with the highest number of unique customers assigned in June 2025\nSELECT t1.segment, COUNT(DISTINCT t1.unified_customer_id) AS unique_customers_count FROM VID.D_CONV_SEGMENT_HIST t1 WHERE t1.segment_sdt < DATE '2025-07-01' AND t1.segment_edt >= DATE '2025-06-01' GROUP BY t1.segment ORDER BY unique_customers_count DESC",
-          "rows": [
-            {
-              "segment": "MASS",
-              "unique_customers_count": 2892
-            },
-            {
-              "segment": "SME",
-              "unique_customers_count": 1036
-            },
-            {
-              "segment": "YOUTH",
-              "unique_customers_count": 973
-            },
-            {
-              "segment": "SOHO",
-              "unique_customers_count": 521
-            },
-            {
-              "segment": "CORPORATE",
-              "unique_customers_count": 391
-            },
-            {
-              "segment": "VIP",
-              "unique_customers_count": 254
-            },
-            {
-              "segment": "MULTICULTURAL",
-              "unique_customers_count": 195
-            }
-          ],
-          "row_count": 7,
-          "elapsed_ms": 1223.26,
-          "total_latency_ms": 3686.574612998811,
-          "attempts": 1,
-          "repaired": false,
-          "abstained": false,
-          "error": null,
-          "model": "gemini-3.5-flash-lite"
-        },
         {
           "sql": "-- Answers: Customer segment with the highest number of unique customers assigned in June 2025\nSELECT t.segment, COUNT(DISTINCT t.unified_customer_id) AS unique_customers\nFROM VID.D_CONV_SEGMENT_HIST t\nWHERE t.segment_sdt < DATE '2025-07-01' AND t.segment_edt >= DATE '2025-06-01'\nGROUP BY t.segment\nORDER BY unique_customers DESC",
           "rows": [
@@ -1429,8 +1388,8 @@
             }
           ],
           "row_count": 7,
-          "elapsed_ms": 1206.93,
-          "total_latency_ms": 3071.0606339998776,
+          "elapsed_ms": 1016.83,
+          "total_latency_ms": 3334.4396149987006,
           "attempts": 1,
           "repaired": false,
           "abstained": false,
@@ -1438,7 +1397,7 @@
           "model": "gemini-3.5-flash-lite"
         },
         {
-          "sql": "-- Answers: Customer segment with the highest number of unique customers assigned in June 2025\nSELECT t.segment, COUNT(DISTINCT t.unified_customer_id) AS unique_customers\nFROM VID.D_CONV_SEGMENT_HIST t\nWHERE t.segment_sdt < DATE '2025-07-01'\n  AND t.segment_edt >= DATE '2025-06-01'\nGROUP BY t.segment\nORDER BY unique_customers DESC",
+          "sql": "-- Answers: Customer segment with the highest number of unique customers assigned in June 2025\nSELECT t1.segment, COUNT(DISTINCT t1.unified_customer_id) AS unique_customers\nFROM VID.D_CONV_SEGMENT_HIST t1\nWHERE t1.segment_sdt < DATE '2025-07-01' AND t1.segment_edt >= DATE '2025-06-01'\nGROUP BY t1.segment\nORDER BY unique_customers DESC",
           "rows": [
             {
               "segment": "MASS",
@@ -1470,8 +1429,49 @@
             }
           ],
           "row_count": 7,
-          "elapsed_ms": 1017.85,
-          "total_latency_ms": 2867.0603489954374,
+          "elapsed_ms": 1345.76,
+          "total_latency_ms": 3580.869272998825,
+          "attempts": 1,
+          "repaired": false,
+          "abstained": false,
+          "error": null,
+          "model": "gemini-3.5-flash-lite"
+        },
+        {
+          "sql": "-- Answers: Customer segment with the highest number of unique customers assigned in June 2025\nSELECT t1.segment, COUNT(DISTINCT t1.unified_customer_id) AS unique_customers FROM VID.D_CONV_SEGMENT_HIST t1 WHERE t1.segment_sdt < DATE '2025-07-01' AND t1.segment_edt >= DATE '2025-06-01' GROUP BY t1.segment ORDER BY unique_customers DESC",
+          "rows": [
+            {
+              "segment": "MASS",
+              "unique_customers": 2892
+            },
+            {
+              "segment": "SME",
+              "unique_customers": 1036
+            },
+            {
+              "segment": "YOUTH",
+              "unique_customers": 973
+            },
+            {
+              "segment": "SOHO",
+              "unique_customers": 521
+            },
+            {
+              "segment": "CORPORATE",
+              "unique_customers": 391
+            },
+            {
+              "segment": "VIP",
+              "unique_customers": 254
+            },
+            {
+              "segment": "MULTICULTURAL",
+              "unique_customers": 195
+            }
+          ],
+          "row_count": 7,
+          "elapsed_ms": 812.92,
+          "total_latency_ms": 3484.6318880008766,
           "attempts": 1,
           "repaired": false,
           "abstained": false,
@@ -1481,7 +1481,7 @@
       ],
       "is_consistent": true,
       "is_correct": false,
-      "avg_latency_ms": 3208.2318653313755,
+      "avg_latency_ms": 3466.646925332801,
       "avg_retries": 0.0,
       "success_rate": 1.0
     },
@@ -1491,26 +1491,26 @@
       "difficulty": "Medium",
       "runs": [
         {
-          "sql": "WITH monthly_kpis AS (SELECT TRUNC(t.from_main_offer_sdt, 'MM') AS month_start, COUNT(DISTINCT CASE WHEN t.lifecycle_group_cd = 'grossadd' THEN t.subscription_id END) AS gross_adds, COUNT(DISTINCT CASE WHEN t.lifecycle_group_cd = 'disconnection' THEN t.subscription_id END) AS disconnections FROM VID.F_LIFECYCLE_KPI t WHERE t.from_main_offer_sdt >= DATE '2026-07-01' AND t.from_main_offer_sdt < DATE '2026-09-01' AND t.lifecycle_group_cd IN ('grossadd', 'disconnection') GROUP BY TRUNC(t.from_main_offer_sdt, 'MM')) SELECT m.month_start, m.gross_adds, m.disconnections, m.gross_adds - LAG(m.gross_adds, 1) OVER (ORDER BY m.month_start) AS mom_gross_adds_change, m.disconnections - LAG(m.disconnections, 1) OVER (ORDER BY m.month_start) AS mom_disconnections_change FROM monthly_kpis m ORDER BY m.month_start",
+          "sql": "WITH monthly_stats AS (SELECT TRUNC(t.event_dt, 'MM') AS event_month, COUNT(DISTINCT CASE WHEN t.lifecycle_group_cd = 'grossadd' THEN t.subscription_id END) AS gross_adds, COUNT(DISTINCT CASE WHEN t.lifecycle_group_cd = 'disconnection' THEN t.subscription_id END) AS disconnections FROM VID.F_LIFECYCLE_KPI t WHERE t.event_dt >= DATE '2026-07-01' AND t.event_dt < DATE '2026-09-01' AND t.lifecycle_group_cd IN ('grossadd', 'disconnection') GROUP BY TRUNC(t.event_dt, 'MM')) SELECT m.event_month, m.gross_adds, m.disconnections, m.gross_adds - LAG(m.gross_adds, 1) OVER (ORDER BY m.event_month) AS mom_gross_adds_change, m.disconnections - LAG(m.disconnections, 1) OVER (ORDER BY m.event_month) AS mom_disconnections_change FROM monthly_stats m ORDER BY m.event_month",
           "rows": [
             {
-              "month_start": "2026-07-01T00:00:00",
-              "gross_adds": 135,
-              "disconnections": 153,
+              "event_month": "2026-07-01T00:00:00",
+              "gross_adds": 1558,
+              "disconnections": 996,
               "mom_gross_adds_change": null,
               "mom_disconnections_change": null
             },
             {
-              "month_start": "2026-08-01T00:00:00",
-              "gross_adds": 26,
-              "disconnections": 50,
-              "mom_gross_adds_change": -109,
-              "mom_disconnections_change": -103
+              "event_month": "2026-08-01T00:00:00",
+              "gross_adds": 1367,
+              "disconnections": 874,
+              "mom_gross_adds_change": -191,
+              "mom_disconnections_change": -122
             }
           ],
           "row_count": 2,
-          "elapsed_ms": 1318.62,
-          "total_latency_ms": 7269.686530002218,
+          "elapsed_ms": 1109.6,
+          "total_latency_ms": 7669.791492000513,
           "attempts": 2,
           "repaired": true,
           "abstained": false,
@@ -1518,54 +1518,39 @@
           "model": "gemini-3.5-flash-lite"
         },
         {
-          "sql": "WITH monthly_stats AS (SELECT TRUNC(t.event_dt, 'MM') AS month_start, COUNT(DISTINCT CASE WHEN t.lifecycle_group_cd = 'grossadd' THEN t.subscription_id END) AS gross_adds, COUNT(DISTINCT CASE WHEN t.lifecycle_group_cd = 'disconnection' THEN t.subscription_id END) AS disconnections FROM VID.F_LIFECYCLE_KPI t WHERE t.event_dt >= DATE '2026-07-01' AND t.event_dt < DATE '2026-09-01' AND t.lifecycle_group_cd IN ('grossadd', 'disconnection') GROUP BY TRUNC(t.event_dt, 'MM')) SELECT TO_CHAR(m.month_start, 'YYYY-MM') AS calendar_month, m.gross_adds, m.gross_adds - LAG(m.gross_adds) OVER (ORDER BY m.month_start) AS mom_gross_adds_change, m.disconnections, m.disconnections - LAG(m.disconnections) OVER (ORDER BY m.month_start) AS mom_disconnections_change FROM monthly_stats m ORDER BY m.month_start",
-          "rows": [
-            {
-              "calendar_month": "2026-07",
-              "gross_adds": 1558,
-              "mom_gross_adds_change": null,
-              "disconnections": 996,
-              "mom_disconnections_change": null
-            },
-            {
-              "calendar_month": "2026-08",
-              "gross_adds": 1367,
-              "mom_gross_adds_change": -191,
-              "disconnections": 874,
-              "mom_disconnections_change": -122
-            }
-          ],
-          "row_count": 2,
-          "elapsed_ms": 1143.03,
-          "total_latency_ms": 9863.484561996302,
+          "sql": "WITH monthly_stats AS (SELECT TRUNC(t.lifecycle_date, 'MM') AS month_dt, COUNT(DISTINCT CASE WHEN t.lifecycle_group_cd = 'grossadd' THEN t.subscription_id END) AS gross_adds, COUNT(DISTINCT CASE WHEN t.lifecycle_group_cd = 'disconnection' THEN t.subscription_id END) AS disconnections FROM VID.F_LIFECYCLE_KPI t WHERE t.lifecycle_date >= DATE '2026-07-01' AND t.lifecycle_date < DATE '2026-09-01' AND t.lifecycle_group_cd IN ('grossadd', 'disconnection') GROUP BY TRUNC(t.lifecycle_date, 'MM')) SELECT TO_CHAR(m.month_dt, 'YYYY-MM') AS month_str, m.gross_adds, m.disconnections, m.gross_adds - LAG(m.gross_adds) OVER (ORDER BY m.month_dt) AS mom_gross_adds_change, m.disconnections - LAG(m.disconnections) OVER (ORDER BY m.month_dt) AS mom_disconnections_change FROM monthly_stats m ORDER BY m.month_dt",
+          "rows": [],
+          "row_count": 0,
+          "elapsed_ms": 7984.117883999716,
+          "total_latency_ms": 10814.122982999834,
           "attempts": 3,
-          "repaired": true,
-          "abstained": false,
-          "error": null,
+          "repaired": false,
+          "abstained": true,
+          "error": "SQL execution failed after 3 attempts. Last error: Database error: ORA-00904: \"T\".\"LIFECYCLE_DATE\": invalid identifier\nHelp: https://docs.oracle.com/error-help/db/ora-00904/",
           "model": "gemini-3.5-flash-lite"
         },
         {
-          "sql": "WITH monthly_kpi AS (SELECT TRUNC(t.event_dt, 'MM') AS month_start, COUNT(DISTINCT CASE WHEN t.lifecycle_group_cd = 'grossadd' THEN t.subscription_id END) AS gross_adds, COUNT(DISTINCT CASE WHEN t.lifecycle_group_cd = 'disconnection' THEN t.subscription_id END) AS disconnections FROM VID.F_LIFECYCLE_KPI t WHERE t.event_dt >= DATE '2026-07-01' AND t.event_dt < DATE '2026-09-01' AND t.lifecycle_group_cd IN ('grossadd', 'disconnection') GROUP BY TRUNC(t.event_dt, 'MM')) SELECT TO_CHAR(month_start, 'YYYY-MM') AS calendar_month, gross_adds, gross_adds - LAG(gross_adds, 1) OVER (ORDER BY month_start) AS mom_gross_adds_change, disconnections, disconnections - LAG(disconnections, 1) OVER (ORDER BY month_start) AS mom_disconnections_change FROM monthly_kpi ORDER BY month_start",
+          "sql": "WITH monthly_stats AS (SELECT TRUNC(t.event_dt, 'MM') AS report_month, COUNT(DISTINCT CASE WHEN t.lifecycle_group_cd = 'grossadd' THEN t.subscription_id END) AS gross_adds, COUNT(DISTINCT CASE WHEN t.lifecycle_group_cd = 'disconnection' THEN t.subscription_id END) AS disconnections FROM VID.F_LIFECYCLE_KPI t WHERE t.event_dt >= DATE '2026-07-01' AND t.event_dt < DATE '2026-09-01' AND t.lifecycle_group_cd IN ('grossadd', 'disconnection') GROUP BY TRUNC(t.event_dt, 'MM')) SELECT TO_CHAR(report_month, 'YYYY-MM') AS month_str, gross_adds, disconnections, gross_adds - LAG(gross_adds) OVER (ORDER BY report_month) AS mom_gross_adds_change, disconnections - LAG(disconnections) OVER (ORDER BY report_month) AS mom_disconnections_change FROM monthly_stats ORDER BY report_month",
           "rows": [
             {
-              "calendar_month": "2026-07",
+              "month_str": "2026-07",
               "gross_adds": 1558,
-              "mom_gross_adds_change": null,
               "disconnections": 996,
+              "mom_gross_adds_change": null,
               "mom_disconnections_change": null
             },
             {
-              "calendar_month": "2026-08",
+              "month_str": "2026-08",
               "gross_adds": 1367,
-              "mom_gross_adds_change": -191,
               "disconnections": 874,
+              "mom_gross_adds_change": -191,
               "mom_disconnections_change": -122
             }
           ],
           "row_count": 2,
-          "elapsed_ms": 1271.13,
-          "total_latency_ms": 6681.069972997648,
-          "attempts": 2,
+          "elapsed_ms": 1048.42,
+          "total_latency_ms": 42763.15111299482,
+          "attempts": 3,
           "repaired": true,
           "abstained": false,
           "error": null,
@@ -1574,9 +1559,9 @@
       ],
       "is_consistent": false,
       "is_correct": false,
-      "avg_latency_ms": 7938.080354998722,
-      "avg_retries": 1.3333333333333333,
-      "success_rate": 1.0
+      "avg_latency_ms": 20415.68852933172,
+      "avg_retries": 1.6666666666666667,
+      "success_rate": 0.6666666666666666
     },
     {
       "question_id": "5",
@@ -1596,8 +1581,8 @@
             }
           ],
           "row_count": 2,
-          "elapsed_ms": 993.81,
-          "total_latency_ms": 2823.8270910005667,
+          "elapsed_ms": 1019.79,
+          "total_latency_ms": 3751.1352889996488,
           "attempts": 1,
           "repaired": false,
           "abstained": false,
@@ -1605,7 +1590,7 @@
           "model": "gemini-3.5-flash-lite"
         },
         {
-          "sql": "-- Answers: Breakdown of subscribers using a physical SIM vs eSIM as of 28 August 2026\nSELECT t2.esim_ind, COUNT(DISTINCT t1.subscription_id) AS subscriber_count FROM VID.F_SUBSCRIPTION_D t1 JOIN VID.D_ICCI_IMSI_SUBS_HIST t2 ON t1.subscription_id = t2.subscription_id WHERE t1.snapshot_dt = DATE '2026-08-28' AND t2.icci_imsi_subs_sdt <= DATE '2026-08-28' AND t2.icci_imsi_subs_edt > DATE '2026-08-28' GROUP BY t2.esim_ind",
+          "sql": "-- Answers: Breakdown of mobile subscribers by physical SIM vs eSIM as of 28 August 2026\nSELECT t2.esim_ind, COUNT(DISTINCT t1.subscription_id) AS subscriber_count FROM VID.F_SUBSCRIPTION_D t1 JOIN VID.D_ICCI_IMSI_SUBS_HIST t2 ON t1.subscription_id = t2.subscription_id WHERE t1.snapshot_dt = DATE '2026-08-28' AND t2.icci_imsi_subs_sdt <= DATE '2026-08-28' AND t2.icci_imsi_subs_edt > DATE '2026-08-28' GROUP BY t2.esim_ind",
           "rows": [
             {
               "esim_ind": "N",
@@ -1617,8 +1602,8 @@
             }
           ],
           "row_count": 2,
-          "elapsed_ms": 972.53,
-          "total_latency_ms": 3216.483361000428,
+          "elapsed_ms": 1249.55,
+          "total_latency_ms": 3683.0816349975066,
           "attempts": 1,
           "repaired": false,
           "abstained": false,
@@ -1626,7 +1611,7 @@
           "model": "gemini-3.5-flash-lite"
         },
         {
-          "sql": "-- Answers: Breakdown of subscribers by physical SIM vs eSIM as of 28 August 2026\nSELECT t1.esim_ind, COUNT(DISTINCT t1.subscription_id) AS subscriber_count FROM VID.D_ICCI_IMSI_SUBS_HIST t1 JOIN VID.F_SUBSCRIPTION_D t2 ON t1.subscription_id = t2.subscription_id WHERE t2.snapshot_dt = DATE '2026-08-28' AND t1.icci_imsi_subs_sdt <= DATE '2026-08-28' AND t1.icci_imsi_subs_edt > DATE '2026-08-28' GROUP BY t1.esim_ind",
+          "sql": "-- Answers: Breakdown of subscribers by physical SIM vs eSIM as of 28 August 2026\nSELECT t2.esim_ind, COUNT(DISTINCT t1.subscription_id) AS subscriber_count FROM VID.F_SUBSCRIPTION_D t1 JOIN VID.D_ICCI_IMSI_SUBS_HIST t2 ON t1.subscription_id = t2.subscription_id WHERE t1.snapshot_dt = DATE '2026-08-28' AND t2.icci_imsi_subs_sdt <= DATE '2026-08-28' AND t2.icci_imsi_subs_edt > DATE '2026-08-28' GROUP BY t2.esim_ind",
           "rows": [
             {
               "esim_ind": "N",
@@ -1638,8 +1623,8 @@
             }
           ],
           "row_count": 2,
-          "elapsed_ms": 1340.2,
-          "total_latency_ms": 57430.181948999234,
+          "elapsed_ms": 1064.93,
+          "total_latency_ms": 3220.6337780007743,
           "attempts": 1,
           "repaired": false,
           "abstained": false,
@@ -1649,7 +1634,7 @@
       ],
       "is_consistent": true,
       "is_correct": false,
-      "avg_latency_ms": 21156.83080033341,
+      "avg_latency_ms": 3551.6169006659766,
       "avg_retries": 0.0,
       "success_rate": 1.0
     },
@@ -1828,8 +1813,8 @@
             }
           ],
           "row_count": 33,
-          "elapsed_ms": 1161.05,
-          "total_latency_ms": 11324.746988997504,
+          "elapsed_ms": 932.22,
+          "total_latency_ms": 10231.51696199784,
           "attempts": 3,
           "repaired": true,
           "abstained": false,
@@ -1837,140 +1822,190 @@
           "model": "gemini-3.5-flash-lite"
         },
         {
-          "sql": "SELECT t.offer_id, t.offer_num, COUNT(DISTINCT l.subscription_id) AS disconnection_count FROM VID.F_LIFECYCLE_KPI l JOIN VID.D_SUBS_TARIFF_HIST h ON l.subscription_id = h.subscription_id JOIN VID.D_TARIFF t ON h.offer_id = t.offer_id WHERE l.lifecycle_group_cd = 'disconnection' AND l.month_id = '202608' AND l.from_main_offer_sdt >= DATE '2026-08-01' AND l.from_main_offer_sdt < DATE '2026-09-01' AND l.from_main_offer_sdt BETWEEN h.subs_offer_sdt AND h.subs_offer_edt GROUP BY t.offer_id, t.offer_num ORDER BY disconnection_count DESC",
+          "sql": "SELECT t.offer_id, t.offer_num, COUNT(DISTINCT l.subscription_id) AS disconnection_count FROM VID.F_LIFECYCLE_KPI l JOIN VID.D_SUBS_TARIFF_HIST h ON l.subscription_id = h.subscription_id JOIN VID.D_TARIFF t ON h.offer_id = t.offer_id WHERE l.lifecycle_group_cd = 'disconnection' AND l.event_date >= DATE '2026-08-01' AND l.event_date < DATE '2026-09-01' AND l.event_date BETWEEN h.subs_offer_sdt AND h.subs_offer_edt GROUP BY t.offer_id, t.offer_num ORDER BY disconnection_count DESC",
           "rows": [],
           "row_count": 0,
-          "elapsed_ms": 7470.181605000107,
-          "total_latency_ms": 9728.040775000409,
+          "elapsed_ms": 8228.276752000966,
+          "total_latency_ms": 10547.307842003647,
           "attempts": 3,
           "repaired": false,
           "abstained": true,
-          "error": "SQL execution failed after 3 attempts. Last error: Database error: ORA-00904: \"L\".\"MONTH_ID\": invalid identifier\nHelp: https://docs.oracle.com/error-help/db/ora-00904/",
+          "error": "SQL execution failed after 3 attempts. Last error: Database error: ORA-00904: \"L\".\"EVENT_DATE\": invalid identifier\nHelp: https://docs.oracle.com/error-help/db/ora-00904/",
           "model": "gemini-3.5-flash-lite"
         },
         {
-          "sql": "SELECT t.offer_id, t.offer_num, COUNT(DISTINCT l.subscription_id) AS disconnection_count FROM VID.F_LIFECYCLE_KPI l JOIN VID.D_SUBS_TARIFF_HIST h ON l.subscription_id = h.subscription_id JOIN VID.D_TARIFF t ON h.offer_id = t.offer_id WHERE l.lifecycle_group_cd = 'disconnection' AND l.from_main_offer_sdt >= DATE '2026-08-01' AND l.from_main_offer_sdt < DATE '2026-09-01' AND l.from_main_offer_sdt BETWEEN h.subs_offer_sdt AND h.subs_offer_edt GROUP BY t.offer_id, t.offer_num ORDER BY disconnection_count DESC",
+          "sql": "SELECT t.offer_id, t.offer_num, COUNT(DISTINCT l.subscription_id) AS disconnection_count FROM VID.F_LIFECYCLE_KPI l JOIN VID.D_SUBS_TARIFF_HIST h ON l.subscription_id = h.subscription_id JOIN VID.D_TARIFF t ON h.offer_id = t.offer_id WHERE l.lifecycle_group_cd = 'disconnection' AND l.event_dt >= DATE '2026-08-01' AND l.event_dt < DATE '2026-09-01' AND l.event_dt BETWEEN h.subs_offer_sdt AND h.subs_offer_edt GROUP BY t.offer_id, t.offer_num ORDER BY disconnection_count DESC",
           "rows": [
-            {
-              "offer_id": "1-J0TX1CR",
-              "offer_num": "TR659661",
-              "disconnection_count": 5
-            },
             {
               "offer_id": "1-GJAPU3J",
               "offer_num": "TR457964",
-              "disconnection_count": 3
-            },
-            {
-              "offer_id": "1-3RAEO1G",
-              "offer_num": "TR904825",
-              "disconnection_count": 3
+              "disconnection_count": 83
             },
             {
               "offer_id": "1-151Z1SY",
               "offer_num": "TR284691",
-              "disconnection_count": 3
+              "disconnection_count": 80
             },
             {
-              "offer_id": "1-J717RJ3",
-              "offer_num": "TR384370",
-              "disconnection_count": 2
-            },
-            {
-              "offer_id": "1-9Y2ZDFF",
-              "offer_num": "TR878361",
-              "disconnection_count": 2
-            },
-            {
-              "offer_id": "1-IFF31UQ",
-              "offer_num": "TR530358",
-              "disconnection_count": 2
-            },
-            {
-              "offer_id": "1-WKD91F8",
-              "offer_num": "TR396202",
-              "disconnection_count": 2
-            },
-            {
-              "offer_id": "1-LS4M1HS",
-              "offer_num": "TR431959",
-              "disconnection_count": 2
-            },
-            {
-              "offer_id": "1-GBZQUS5",
-              "offer_num": "TR433511",
-              "disconnection_count": 2
-            },
-            {
-              "offer_id": "1-T7P7EIV",
-              "offer_num": "TR578514",
-              "disconnection_count": 2
+              "offer_id": "1-J0TX1CR",
+              "offer_num": "TR659661",
+              "disconnection_count": 53
             },
             {
               "offer_id": "1-3BSURNK",
               "offer_num": "TR983512",
-              "disconnection_count": 2
-            },
-            {
-              "offer_id": "1-WAA7IJ3",
-              "offer_num": "TR192128",
-              "disconnection_count": 2
-            },
-            {
-              "offer_id": "1-GPEACW0",
-              "offer_num": "TR982174",
-              "disconnection_count": 1
+              "disconnection_count": 45
             },
             {
               "offer_id": "1-Q2BSKSP",
               "offer_num": "TR916749",
-              "disconnection_count": 1
-            },
-            {
-              "offer_id": "1-KT8VOOA",
-              "offer_num": "TR985920",
-              "disconnection_count": 1
-            },
-            {
-              "offer_id": "1-R51UR00",
-              "offer_num": "TR219003",
-              "disconnection_count": 1
-            },
-            {
-              "offer_id": "1-R25KZJX",
-              "offer_num": "TR823315",
-              "disconnection_count": 1
-            },
-            {
-              "offer_id": "1-RVZB0DX",
-              "offer_num": "TR129623",
-              "disconnection_count": 1
-            },
-            {
-              "offer_id": "1-574ZWK4",
-              "offer_num": "TR859916",
-              "disconnection_count": 1
+              "disconnection_count": 31
             },
             {
               "offer_id": "1-25NUGF0",
               "offer_num": "TR235271",
-              "disconnection_count": 1
+              "disconnection_count": 29
+            },
+            {
+              "offer_id": "1-T7P7EIV",
+              "offer_num": "TR578514",
+              "disconnection_count": 26
+            },
+            {
+              "offer_id": "1-3RAEO1G",
+              "offer_num": "TR904825",
+              "disconnection_count": 26
+            },
+            {
+              "offer_id": "1-75W4WWC",
+              "offer_num": "TR204956",
+              "disconnection_count": 24
+            },
+            {
+              "offer_id": "1-J717RJ3",
+              "offer_num": "TR384370",
+              "disconnection_count": 23
+            },
+            {
+              "offer_id": "1-WKD91F8",
+              "offer_num": "TR396202",
+              "disconnection_count": 23
+            },
+            {
+              "offer_id": "1-GPEACW0",
+              "offer_num": "TR982174",
+              "disconnection_count": 21
+            },
+            {
+              "offer_id": "1-1BUAQEX",
+              "offer_num": "TR521457",
+              "disconnection_count": 21
+            },
+            {
+              "offer_id": "1-LS4M1HS",
+              "offer_num": "TR431959",
+              "disconnection_count": 19
+            },
+            {
+              "offer_id": "1-RVZB0DX",
+              "offer_num": "TR129623",
+              "disconnection_count": 19
             },
             {
               "offer_id": "1-KM7QVUQ",
               "offer_num": "TR281534",
-              "disconnection_count": 1
+              "disconnection_count": 18
+            },
+            {
+              "offer_id": "1-KT8VOOA",
+              "offer_num": "TR985920",
+              "disconnection_count": 18
+            },
+            {
+              "offer_id": "1-XNVBCXG",
+              "offer_num": "TR895710",
+              "disconnection_count": 18
+            },
+            {
+              "offer_id": "1-4SNYILM",
+              "offer_num": "TR928415",
+              "disconnection_count": 17
+            },
+            {
+              "offer_id": "1-342WD4W",
+              "offer_num": "TR436830",
+              "disconnection_count": 17
+            },
+            {
+              "offer_id": "1-L7AGUGK",
+              "offer_num": "TR948485",
+              "disconnection_count": 16
+            },
+            {
+              "offer_id": "1-MI92WCK",
+              "offer_num": "TR887330",
+              "disconnection_count": 16
+            },
+            {
+              "offer_id": "1-574ZWK4",
+              "offer_num": "TR859916",
+              "disconnection_count": 15
+            },
+            {
+              "offer_id": "1-R51UR00",
+              "offer_num": "TR219003",
+              "disconnection_count": 14
+            },
+            {
+              "offer_id": "1-DAURS7A",
+              "offer_num": "TR482482",
+              "disconnection_count": 14
+            },
+            {
+              "offer_id": "1-IFF31UQ",
+              "offer_num": "TR530358",
+              "disconnection_count": 14
+            },
+            {
+              "offer_id": "1-WAA7IJ3",
+              "offer_num": "TR192128",
+              "disconnection_count": 14
+            },
+            {
+              "offer_id": "1-3M9EBQO",
+              "offer_num": "TR245036",
+              "disconnection_count": 13
+            },
+            {
+              "offer_id": "1-R25KZJX",
+              "offer_num": "TR823315",
+              "disconnection_count": 11
+            },
+            {
+              "offer_id": "1-9Y2ZDFF",
+              "offer_num": "TR878361",
+              "disconnection_count": 9
+            },
+            {
+              "offer_id": "1-YQH8T5A",
+              "offer_num": "TR674220",
+              "disconnection_count": 7
+            },
+            {
+              "offer_id": "1-GBZQUS5",
+              "offer_num": "TR433511",
+              "disconnection_count": 6
             },
             {
               "offer_id": "1-7USAQ8H",
               "offer_num": "TR835268",
-              "disconnection_count": 1
+              "disconnection_count": 6
             }
           ],
-          "row_count": 23,
-          "elapsed_ms": 1244.89,
-          "total_latency_ms": 6636.312149996229,
-          "attempts": 2,
+          "row_count": 33,
+          "elapsed_ms": 937.32,
+          "total_latency_ms": 10913.1687360059,
+          "attempts": 3,
           "repaired": true,
           "abstained": false,
           "error": null,
@@ -1979,8 +2014,8 @@
       ],
       "is_consistent": false,
       "is_correct": false,
-      "avg_latency_ms": 9229.69997133138,
-      "avg_retries": 1.6666666666666667,
+      "avg_latency_ms": 10563.99784666913,
+      "avg_retries": 2.0,
       "success_rate": 0.6666666666666666
     }
   ]

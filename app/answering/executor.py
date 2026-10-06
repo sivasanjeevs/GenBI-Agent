@@ -137,17 +137,54 @@ ORACLE SQL RULES:
 
 
 def _build_schema_hint(state: AnsweringState) -> str:
-    """Extract column names from the retrieved semantic layer tables."""
+    """
+    Build a rich schema hint for the repair LLM call.
+    Loads actual column names, types, and descriptions directly from the
+    semantic layer so the LLM can fix ORA-00904 (invalid identifier) errors.
+    """
+    from app.learning.store import load_semantic_layer
+
     lines: list[str] = []
-    for table_name in state.table_names[:7]:
-        # Load from the in-memory retrieval result (stored via plan.tables)
-        lines.append(f"Table: {table_name}")
-    # We don't re-load the full layer here; use the plan's table list as the hint.
-    tables_in_plan = state.plan.tables
-    return (
-        "Tables in plan: " + ", ".join(tables_in_plan) + "\n"
-        "Refer to the semantic layer for exact column names."
-    )
+    try:
+        layer = load_semantic_layer()
+        if layer:
+            plan_tables_upper = {t.upper() for t in (state.plan.tables or state.table_names)}
+            for table in layer.get("tables", []):
+                full_name: str = table.get("full_name", "").upper()
+                if full_name not in plan_tables_upper:
+                    continue
+                sem = table.get("semantics", {})
+                lines.append(f"\nTable: {full_name}")
+                lines.append(f"  Description: {sem.get('table_description', 'N/A')}")
+                if sem.get("scd_note"):
+                    lines.append(f"  SCD Note: {sem['scd_note']}")
+                col_lines: list[str] = []
+                for col_name, col_info in sem.get("columns", {}).items():
+                    vm = col_info.get("value_map", {})
+                    vm_str = f" | values={list(vm.keys())[:6]}" if vm else ""
+                    col_lines.append(
+                        f"    {col_name} ({col_info.get('semantic_type', '?')}): "
+                        f"{col_info.get('description', '')}{vm_str}"
+                    )
+                if col_lines:
+                    lines.append("  Columns:")
+                    lines.extend(col_lines)
+                # Verified high-confidence concepts
+                high_concepts = [
+                    vc for vc in table.get("verified_concepts", [])
+                    if vc.get("confidence") == "high"
+                ]
+                for vc in high_concepts[:3]:
+                    lines.append(f"  Concept '{vc['term']}' → WHERE {vc['filter_sql']}")
+    except Exception:  # noqa: BLE001  – don't let hint-building break the repair
+        pass
+
+    if not lines:
+        # Graceful fallback
+        tables_in_plan = state.plan.tables or state.table_names
+        return "Tables in plan: " + ", ".join(tables_in_plan)
+
+    return "\n".join(lines)
 
 
 def _repair_sql(

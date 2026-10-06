@@ -3,42 +3,679 @@
     "id": "1",
     "question": "List the active shops in Istanbul with their shop number, district and sales manager.",
     "difficulty": "Easy",
-    "expected_data": null,
-    "notes": "expected_data left null — populate after running the query once and verifying the result set is correct."
+    "expected_data": [
+      {
+        "shop_id": 5046,
+        "shop_num": "VS005046",
+        "shop_name": "Ata\u015fehir Vodafone Cep Merkezi 3",
+        "shop_district": "Ata\u015fehir",
+        "sales_manager_user_name": "asli.erdogan"
+      },
+      {
+        "shop_id": 5010,
+        "shop_num": "VS005010",
+        "shop_name": "Ata\u015fehir Vodafone Shop",
+        "shop_district": "Ata\u015fehir",
+        "sales_manager_user_name": "hatice.simsek"
+      },
+      {
+        "shop_id": 5028,
+        "shop_num": "VS005028",
+        "shop_name": "Ata\u015fehir Vodafone Shop 2",
+        "shop_district": "Ata\u015fehir",
+        "sales_manager_user_name": "mustafa.korkmaz"
+      },
+      {
+        "shop_id": 5012,
+        "shop_num": "VS005012",
+        "shop_name": "Bah\u00e7elievler Vodafone Shop",
+        "shop_district": "Bah\u00e7elievler",
+        "sales_manager_user_name": "hatice.aslan"
+      },
+      {
+        "shop_id": 5048,
+        "shop_num": "VS005048",
+        "shop_name": "Bah\u00e7elievler Vodafone Shop 3",
+        "shop_district": "Bah\u00e7elievler",
+        "sales_manager_user_name": "hatice.erdogan"
+      },
+      {
+        "shop_id": 5030,
+        "shop_num": "VS005030",
+        "shop_name": "Bah\u00e7elievler Vodafone \u0130leti\u015fim 2",
+        "shop_district": "Bah\u00e7elievler",
+        "sales_manager_user_name": "i\u0307brahim.aslan"
+      },
+      {
+        "shop_id": 5005,
+        "shop_num": "VS005005",
+        "shop_name": "Bak\u0131rk\u00f6y Vodafone Shop",
+        "shop_district": "Bak\u0131rk\u00f6y",
+        "sales_manager_user_name": "mehmet.aslan"
+      },
+      {
+        "shop_id": 5023,
+        "shop_num": "VS005023",
+        "shop_name": "Bak\u0131rk\u00f6y Vodafone Shop 2",
+        "shop_district": "Bak\u0131rk\u00f6y",
+        "sales_manager_user_name": "fatma.korkmaz"
+      },
+      {
+        "shop_id": 5041,
+        "shop_num": "VS005041",
+        "shop_name": "Bak\u0131rk\u00f6y Vodafone \u0130leti\u015fim 3",
+        "shop_district": "Bak\u0131rk\u00f6y",
+        "sales_manager_user_name": "hatice.aksoy"
+      },
+      {
+        "shop_id": 5015,
+        "shop_num": "VS005015",
+        "shop_name": "Ba\u015fak\u015fehir Vodafone Shop",
+        "shop_district": "Ba\u015fak\u015fehir",
+        "sales_manager_user_name": "gul.ozturk"
+      },
+      {
+        "shop_id": 5033,
+        "shop_num": "VS005033",
+        "shop_name": "Ba\u015fak\u015fehir Vodafone \u0130leti\u015fim 2",
+        "shop_district": "Ba\u015fak\u015fehir",
+        "sales_manager_user_name": "ayse.korkmaz"
+      },
+      {
+        "shop_id": 5018,
+        "shop_num": "VS005018",
+        "shop_name": "Beylikd\u00fcz\u00fc Vodafone Cep Merkezi",
+        "shop_district": "Beylikd\u00fcz\u00fc",
+        "sales_manager_user_name": "fatma.dogan"
+      },
+      {
+        "shop_id": 5054,
+        "shop_num": "VS005054",
+        "shop_name": "Beylikd\u00fcz\u00fc Vodafone \u0130leti\u015fim 3",
+        "shop_district": "Beylikd\u00fcz\u00fc",
+        "sales_manager_user_name": "gokhan.korkmaz"
+      },
+      {
+        "shop_id": 5026,
+        "shop_num": "VS005026",
+        "shop_name": "Beyo\u011flu Vodafone Shop 2",
+        "shop_district": "Beyo\u011flu",
+        "sales_manager_user_name": "mehmet.gunes"
+      },
+      {
+        "shop_id": 5056,
+        "shop_num": "VS005056",
+        "shop_name": "Be\u015fikta\u015f Vodafone Cep Merkezi 4",
+        "shop_district": "Be\u015fikta\u015f",
+        "sales_manager_user_name": "esra.bulut"
+      },
+      {
+        "shop_id": 5002,
+        "shop_num": "VS005002",
+        "shop_name": "Be\u015fikta\u015f Vodafone Shop",
+        "shop_district": "Be\u015fikta\u015f",
+        "sales_manager_user_name": "emre.cetin"
+      },
+      {
+        "shop_id": 5020,
+        "shop_num": "VS005020",
+        "shop_name": "Be\u015fikta\u015f Vodafone \u0130leti\u015fim 2",
+        "shop_district": "Be\u015fikta\u015f",
+        "sales_manager_user_name": "ozgur.cetin"
+      },
+      {
+        "shop_id": 5038,
+        "shop_num": "VS005038",
+        "shop_name": "Be\u015fikta\u015f Vodafone \u0130leti\u015fim 3",
+        "shop_district": "Be\u015fikta\u015f",
+        "sales_manager_user_name": "emre.yildirim"
+      },
+      {
+        "shop_id": 5017,
+        "shop_num": "VS005017",
+        "shop_name": "Esenyurt Vodafone Cep Merkezi",
+        "shop_district": "Esenyurt",
+        "sales_manager_user_name": "seyma.aydin"
+      },
+      {
+        "shop_id": 5035,
+        "shop_num": "VS005035",
+        "shop_name": "Esenyurt Vodafone Shop 2",
+        "shop_district": "Esenyurt",
+        "sales_manager_user_name": "emre.kurt"
+      },
+      {
+        "shop_id": 5053,
+        "shop_num": "VS005053",
+        "shop_name": "Esenyurt Vodafone Shop 3",
+        "shop_district": "Esenyurt",
+        "sales_manager_user_name": "merve.simsek"
+      },
+      {
+        "shop_id": 5027,
+        "shop_num": "VS005027",
+        "shop_name": "Fatih Vodafone Cep Merkezi 2",
+        "shop_district": "Fatih",
+        "sales_manager_user_name": "gul.kilic"
+      },
+      {
+        "shop_id": 5009,
+        "shop_num": "VS005009",
+        "shop_name": "Fatih Vodafone \u0130leti\u015fim",
+        "shop_district": "Fatih",
+        "sales_manager_user_name": "merve.ozdemir"
+      },
+      {
+        "shop_id": 5019,
+        "shop_num": "VS005019",
+        "shop_name": "Kad\u0131k\u00f6y Vodafone Cep Merkezi 2",
+        "shop_district": "Kad\u0131k\u00f6y",
+        "sales_manager_user_name": "burak.simsek"
+      },
+      {
+        "shop_id": 5001,
+        "shop_num": "VS005001",
+        "shop_name": "Kad\u0131k\u00f6y Vodafone Shop",
+        "shop_district": "Kad\u0131k\u00f6y",
+        "sales_manager_user_name": "ayse.kaya"
+      },
+      {
+        "shop_id": 5037,
+        "shop_num": "VS005037",
+        "shop_name": "Kad\u0131k\u00f6y Vodafone Shop 3",
+        "shop_district": "Kad\u0131k\u00f6y",
+        "sales_manager_user_name": "serkan.sahin"
+      },
+      {
+        "shop_id": 5049,
+        "shop_num": "VS005049",
+        "shop_name": "Kartal Vodafone Cep Merkezi 3",
+        "shop_district": "Kartal",
+        "sales_manager_user_name": "i\u0307brahim.gunes"
+      },
+      {
+        "shop_id": 5013,
+        "shop_num": "VS005013",
+        "shop_name": "Kartal Vodafone Shop",
+        "shop_district": "Kartal",
+        "sales_manager_user_name": "selin.yilmaz"
+      },
+      {
+        "shop_id": 5006,
+        "shop_num": "VS005006",
+        "shop_name": "Maltepe Vodafone Shop",
+        "shop_district": "Maltepe",
+        "sales_manager_user_name": "mehmet.kara"
+      },
+      {
+        "shop_id": 5024,
+        "shop_num": "VS005024",
+        "shop_name": "Maltepe Vodafone Shop 2",
+        "shop_district": "Maltepe",
+        "sales_manager_user_name": "ozgur.sahin"
+      },
+      {
+        "shop_id": 5042,
+        "shop_num": "VS005042",
+        "shop_name": "Maltepe Vodafone Shop 3",
+        "shop_district": "Maltepe",
+        "sales_manager_user_name": "emre.gunes"
+      },
+      {
+        "shop_id": 5060,
+        "shop_num": "VS005060",
+        "shop_name": "Maltepe Vodafone \u0130leti\u015fim 4",
+        "shop_district": "Maltepe",
+        "sales_manager_user_name": "kerem.bulut"
+      },
+      {
+        "shop_id": 5007,
+        "shop_num": "VS005007",
+        "shop_name": "Pendik Vodafone Shop",
+        "shop_district": "Pendik",
+        "sales_manager_user_name": "mehmet.ozkan"
+      },
+      {
+        "shop_id": 5043,
+        "shop_num": "VS005043",
+        "shop_name": "Pendik Vodafone Shop 3",
+        "shop_district": "Pendik",
+        "sales_manager_user_name": "zeynep.kurt"
+      },
+      {
+        "shop_id": 5025,
+        "shop_num": "VS005025",
+        "shop_name": "Pendik Vodafone \u0130leti\u015fim 2",
+        "shop_district": "Pendik",
+        "sales_manager_user_name": "emre.aslan"
+      },
+      {
+        "shop_id": 5029,
+        "shop_num": "VS005029",
+        "shop_name": "Sar\u0131yer Vodafone Cep Merkezi 2",
+        "shop_district": "Sar\u0131yer",
+        "sales_manager_user_name": "mehmet.koc"
+      },
+      {
+        "shop_id": 5011,
+        "shop_num": "VS005011",
+        "shop_name": "Sar\u0131yer Vodafone \u0130leti\u015fim",
+        "shop_district": "Sar\u0131yer",
+        "sales_manager_user_name": "zeynep.yilmaz"
+      },
+      {
+        "shop_id": 5047,
+        "shop_num": "VS005047",
+        "shop_name": "Sar\u0131yer Vodafone \u0130leti\u015fim 3",
+        "shop_district": "Sar\u0131yer",
+        "sales_manager_user_name": "emre.kurt"
+      },
+      {
+        "shop_id": 5052,
+        "shop_num": "VS005052",
+        "shop_name": "Zeytinburnu Vodafone Cep Merkezi 3",
+        "shop_district": "Zeytinburnu",
+        "sales_manager_user_name": "huseyin.korkmaz"
+      },
+      {
+        "shop_id": 5016,
+        "shop_num": "VS005016",
+        "shop_name": "Zeytinburnu Vodafone Shop",
+        "shop_district": "Zeytinburnu",
+        "sales_manager_user_name": "mehmet.polat"
+      },
+      {
+        "shop_id": 5034,
+        "shop_num": "VS005034",
+        "shop_name": "Zeytinburnu Vodafone Shop 2",
+        "shop_district": "Zeytinburnu",
+        "sales_manager_user_name": "ceren.gunes"
+      },
+      {
+        "shop_id": 5014,
+        "shop_num": "VS005014",
+        "shop_name": "\u00dcmraniye Vodafone Cep Merkezi",
+        "shop_district": "\u00dcmraniye",
+        "sales_manager_user_name": "burak.aksoy"
+      },
+      {
+        "shop_id": 5032,
+        "shop_num": "VS005032",
+        "shop_name": "\u00dcmraniye Vodafone Cep Merkezi 2",
+        "shop_district": "\u00dcmraniye",
+        "sales_manager_user_name": "mustafa.yildiz"
+      },
+      {
+        "shop_id": 5050,
+        "shop_num": "VS005050",
+        "shop_name": "\u00dcmraniye Vodafone Cep Merkezi 3",
+        "shop_district": "\u00dcmraniye",
+        "sales_manager_user_name": "zeynep.simsek"
+      },
+      {
+        "shop_id": 5039,
+        "shop_num": "VS005039",
+        "shop_name": "\u00dcsk\u00fcdar Vodafone Cep Merkezi 3",
+        "shop_district": "\u00dcsk\u00fcdar",
+        "sales_manager_user_name": "ceren.aksoy"
+      },
+      {
+        "shop_id": 5057,
+        "shop_num": "VS005057",
+        "shop_name": "\u00dcsk\u00fcdar Vodafone Cep Merkezi 4",
+        "shop_district": "\u00dcsk\u00fcdar",
+        "sales_manager_user_name": "seyma.aydin"
+      },
+      {
+        "shop_id": 5021,
+        "shop_num": "VS005021",
+        "shop_name": "\u00dcsk\u00fcdar Vodafone Shop 2",
+        "shop_district": "\u00dcsk\u00fcdar",
+        "sales_manager_user_name": "ahmet.cetin"
+      },
+      {
+        "shop_id": 5022,
+        "shop_num": "VS005022",
+        "shop_name": "\u015ei\u015fli Vodafone Cep Merkezi 2",
+        "shop_district": "\u015ei\u015fli",
+        "sales_manager_user_name": "tolga.simsek"
+      },
+      {
+        "shop_id": 5058,
+        "shop_num": "VS005058",
+        "shop_name": "\u015ei\u015fli Vodafone Shop 4",
+        "shop_district": "\u015ei\u015fli",
+        "sales_manager_user_name": "mustafa.polat"
+      },
+      {
+        "shop_id": 5040,
+        "shop_num": "VS005040",
+        "shop_name": "\u015ei\u015fli Vodafone \u0130leti\u015fim 3",
+        "shop_district": "\u015ei\u015fli",
+        "sales_manager_user_name": "merve.dogan"
+      }
+    ],
+    "notes": "expected_data left null \u2014 populate after running the query once and verifying the result set is correct."
   },
   {
     "id": "2",
     "question": "How many phone campaigns are available for sale, by device?",
     "difficulty": "Easy",
-    "expected_data": null,
-    "notes": "expected_data left null — populate after verifying the count per device type."
+    "expected_data": [
+      {
+        "device_commercial_name": "Samsung Galaxy A55",
+        "campaign_count": 6
+      },
+      {
+        "device_commercial_name": "General Mobile GM 24",
+        "campaign_count": 4
+      },
+      {
+        "device_commercial_name": "Honor X8b",
+        "campaign_count": 4
+      },
+      {
+        "device_commercial_name": "Reeder S19 Max Pro",
+        "campaign_count": 4
+      },
+      {
+        "device_commercial_name": "Samsung Galaxy A35",
+        "campaign_count": 4
+      },
+      {
+        "device_commercial_name": "TCL 50 SE",
+        "campaign_count": 4
+      },
+      {
+        "device_commercial_name": "Tecno Spark 20",
+        "campaign_count": 4
+      },
+      {
+        "device_commercial_name": "Xiaomi Redmi Note 13 Pro",
+        "campaign_count": 4
+      },
+      {
+        "device_commercial_name": "Xiaomi Redmi Note 14",
+        "campaign_count": 4
+      },
+      {
+        "device_commercial_name": "vivo Y36",
+        "campaign_count": 4
+      },
+      {
+        "device_commercial_name": "Huawei nova 12 SE",
+        "campaign_count": 3
+      },
+      {
+        "device_commercial_name": "Samsung Galaxy A16",
+        "campaign_count": 3
+      },
+      {
+        "device_commercial_name": "Xiaomi Redmi 13C",
+        "campaign_count": 3
+      },
+      {
+        "device_commercial_name": "iPhone 16",
+        "campaign_count": 3
+      },
+      {
+        "device_commercial_name": "iPhone 16 Pro Max",
+        "campaign_count": 3
+      },
+      {
+        "device_commercial_name": "Samsung Galaxy S24",
+        "campaign_count": 2
+      },
+      {
+        "device_commercial_name": "Samsung Galaxy Z Flip6",
+        "campaign_count": 2
+      },
+      {
+        "device_commercial_name": "iPhone 16 Pro",
+        "campaign_count": 2
+      },
+      {
+        "device_commercial_name": "realme C67",
+        "campaign_count": 2
+      },
+      {
+        "device_commercial_name": "Oppo A79",
+        "campaign_count": 1
+      },
+      {
+        "device_commercial_name": "Samsung Galaxy S23",
+        "campaign_count": 1
+      },
+      {
+        "device_commercial_name": "Samsung Galaxy S24 FE",
+        "campaign_count": 1
+      },
+      {
+        "device_commercial_name": "iPhone 15",
+        "campaign_count": 1
+      }
+    ],
+    "notes": "expected_data left null \u2014 populate after verifying the count per device type."
   },
   {
     "id": "3",
     "question": "Which customer segment had the highest number of unique customers assigned in June 2025?",
     "difficulty": "Medium",
-    "expected_data": null,
-    "notes": "expected_data left null — requires knowing June 2025 segment assignment counts."
+    "expected_data": [
+      {
+        "segment": "MASS",
+        "unique_customer_count": 963
+      },
+      {
+        "segment": "SME",
+        "unique_customer_count": 423
+      },
+      {
+        "segment": "YOUTH",
+        "unique_customer_count": 300
+      },
+      {
+        "segment": "SOHO",
+        "unique_customer_count": 148
+      },
+      {
+        "segment": "CORPORATE",
+        "unique_customer_count": 133
+      },
+      {
+        "segment": "MULTICULTURAL",
+        "unique_customer_count": 84
+      },
+      {
+        "segment": "VIP",
+        "unique_customer_count": 48
+      }
+    ],
+    "notes": "expected_data left null \u2014 requires knowing June 2025 segment assignment counts."
   },
   {
     "id": "4",
     "question": "Compare monthly gross adds and disconnections for July and August 2026, showing the month-over-month change in each.",
     "difficulty": "Medium",
-    "expected_data": null,
-    "notes": "expected_data left null — requires July & August 2026 subscriber event counts."
+    "expected_data": [
+      {
+        "event_month": "2026-07-01T00:00:00",
+        "gross_adds": 1722,
+        "disconnections": 1067,
+        "gross_add_change": null,
+        "disconnection_change": null
+      },
+      {
+        "event_month": "2026-08-01T00:00:00",
+        "gross_adds": 1474,
+        "disconnections": 921,
+        "gross_add_change": -248,
+        "disconnection_change": -146
+      }
+    ],
+    "notes": "expected_data left null \u2014 requires July & August 2026 subscriber event counts."
   },
   {
     "id": "5",
     "question": "As of 28 August 2026, how many subscribers in the mobile base used a physical SIM and how many used an eSIM?",
     "difficulty": "Hard",
-    "expected_data": null,
-    "notes": "expected_data left null — requires point-in-time SIM type counts as of 2026-08-28."
+    "expected_data": [
+      {
+        "snapshot_dt": "2026-08-28T00:00:00",
+        "esim_ind": "N",
+        "subscriber_count": 6691
+      },
+      {
+        "snapshot_dt": "2026-08-28T00:00:00",
+        "esim_ind": "Y",
+        "subscriber_count": 831
+      },
+      {
+        "snapshot_dt": "2026-08-28T00:00:00",
+        "esim_ind": null,
+        "subscriber_count": 91
+      }
+    ],
+    "notes": "expected_data left null \u2014 requires point-in-time SIM type counts as of 2026-08-28."
   },
   {
     "id": "6",
     "question": "For every disconnection in August 2026, which tariff was the subscription on at the moment of the event? Count disconnections per tariff.",
     "difficulty": "Hard",
-    "expected_data": null,
-    "notes": "expected_data left null — requires August 2026 churn events joined to tariff dimension."
+    "expected_data": [
+      {
+        "tariff_name": "Faturas\u0131z S\u00fcper 10GB",
+        "disconnections": 89
+      },
+      {
+        "tariff_name": "Faturas\u0131z Kolay 6GB",
+        "disconnections": 84
+      },
+      {
+        "tariff_name": "Faturas\u0131z S\u00fcper 20GB",
+        "disconnections": 58
+      },
+      {
+        "tariff_name": "M2M Takip Paketi",
+        "disconnections": 56
+      },
+      {
+        "tariff_name": "Gen\u00e7Avantaj 12GB",
+        "disconnections": 54
+      },
+      {
+        "tariff_name": "Her \u015eey Dahil 25GB",
+        "disconnections": 52
+      },
+      {
+        "tariff_name": "Uyumlu 20GB",
+        "disconnections": 48
+      },
+      {
+        "tariff_name": "Dijitalle\u015fen Esnaf 30GB",
+        "disconnections": 47
+      },
+      {
+        "tariff_name": "S\u00fcper Dolu Paket 8GB",
+        "disconnections": 32
+      },
+      {
+        "tariff_name": "Gen\u00e7Avantaj 20GB",
+        "disconnections": 32
+      },
+      {
+        "tariff_name": "Red 20GB",
+        "disconnections": 29
+      },
+      {
+        "tariff_name": "\u0130\u015fOrta\u011f\u0131m 20GB",
+        "disconnections": 26
+      },
+      {
+        "tariff_name": "Red 30GB",
+        "disconnections": 24
+      },
+      {
+        "tariff_name": "Kolay Paket 10GB",
+        "disconnections": 22
+      },
+      {
+        "tariff_name": "Esnaf \u00d6zel 40GB",
+        "disconnections": 21
+      },
+      {
+        "tariff_name": "Tablet Data 10GB",
+        "disconnections": 20
+      },
+      {
+        "tariff_name": "Ev \u0130nterneti Yedek 30GB",
+        "disconnections": 20
+      },
+      {
+        "tariff_name": "\u0130\u015fOrta\u011f\u0131m Pro 50GB",
+        "disconnections": 19
+      },
+      {
+        "tariff_name": "Uyumlu 10GB",
+        "disconnections": 18
+      },
+      {
+        "tariff_name": "Uyumlu 15GB",
+        "disconnections": 18
+      },
+      {
+        "tariff_name": "Kolay Paket 15GB",
+        "disconnections": 17
+      },
+      {
+        "tariff_name": "M2M Ara\u00e7 Paketi",
+        "disconnections": 17
+      },
+      {
+        "tariff_name": "Kolay Paket 5GB",
+        "disconnections": 17
+      },
+      {
+        "tariff_name": "Tablet Data 25GB",
+        "disconnections": 16
+      },
+      {
+        "tariff_name": "Acil Durum / Test Hatt\u0131",
+        "disconnections": 16
+      },
+      {
+        "tariff_name": "S\u00fcper Dolu Paket 16GB",
+        "disconnections": 15
+      },
+      {
+        "tariff_name": "Esnaf \u00d6zel 25GB",
+        "disconnections": 15
+      },
+      {
+        "tariff_name": "Red 40GB Plus",
+        "disconnections": 14
+      },
+      {
+        "tariff_name": "\u0130\u015fOrta\u011f\u0131m 35GB",
+        "disconnections": 11
+      },
+      {
+        "tariff_name": "Red Elite 60GB",
+        "disconnections": 10
+      },
+      {
+        "tariff_name": "Vodafone'lu Kal 15GB",
+        "disconnections": 7
+      },
+      {
+        "tariff_name": "Her \u015eey Dahil Pasaport 35GB",
+        "disconnections": 7
+      },
+      {
+        "tariff_name": "Cepte Wifi 50GB",
+        "disconnections": 6
+      }
+    ],
+    "notes": "expected_data left null \u2014 requires August 2026 churn events joined to tariff dimension."
   }
 ]

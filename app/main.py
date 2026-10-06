@@ -92,6 +92,7 @@ class AskResponse(BaseModel):
     explanation: str
     trace: AgentTrace
     chart: dict[str, Any] | None = None       # CP6 bonus
+    follow_up_suggestions: list[str] = []     # CP5 bonus – suggested follow-ups
 
 class OverrideRequest(BaseModel):
     overrides: dict[str, Any]                 # merged into overrides.yaml
@@ -223,6 +224,7 @@ def ask(req: AskRequest) -> AskResponse:
             explanation=response["explanation"],
             trace=trace,
             chart=response.get("chart"),
+            follow_up_suggestions=response.get("follow_up_suggestions", []),
         )
 
     except ValueError as exc:
