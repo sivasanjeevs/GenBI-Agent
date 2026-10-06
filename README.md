@@ -23,30 +23,7 @@ Unlike traditional Text-to-SQL tools that rely on manually hardcoded definitions
 
 ## 🏗️ Architecture & Pipeline
 
-Rosetta's architecture is divided into two primary pipelines: **Learning** and **Answering**.
-
-```mermaid
-graph TD
-    subgraph Learning Pipeline
-        A[Introspect Schema] --> B[Profile Data Values]
-        B --> C[Detect Schema Patterns]
-        C --> D[LLM Semantic Enrichment]
-        D --> E[SQL Concept Verification]
-        E --> F[(Semantic Layer JSON)]
-    end
-
-    subgraph Answering Pipeline
-        Q((User Question)) --> G[Date Resolution]
-        G --> H[Semantic Retrieval]
-        H --> I[LLM Query Planner]
-        I --> J{SQL Execution Guard}
-        J -- Error --> I
-        J -- Success --> K[Data Synthesis]
-        K --> L((Final Answer & Query))
-    end
-    
-    F -.-> H
-```
+[View the Architecture Diagram on Figma](https://www.figma.com/board/4cnYCwRrL5Ph5rcMpAQ8av/GenBI-agent?node-id=0-1&t=0Se0a7V6rOCf4ES0-1)
 
 ---
 
