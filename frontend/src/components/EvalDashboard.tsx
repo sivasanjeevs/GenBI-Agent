@@ -7,7 +7,6 @@ import {
   Minus,
   Loader2,
   Zap,
-  Target,
   BarChart3,
   Clock,
   RotateCcw,
