@@ -29,7 +29,7 @@ Unlike traditional Text-to-SQL tools that rely on manually hardcoded definitions
 
 ## 🏗️ Architecture explaination and demo video 
 
-[demo video]((https://drive.google.com/drive/folders/1UHdZ_tuicso26fwg1h5EDxoC652KOmz3?usp=sharing))
+[demo video](https://drive.google.com/file/d/19IbHEoeDS-f5FMRz7fGruyp1jiXgSqpN/view?usp=sharing)
 
 ---
 
