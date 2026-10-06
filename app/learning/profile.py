@@ -313,17 +313,3 @@ def profile_schemas(tables: list[TableMeta]) -> list[TableProfile]:
 
     logger.success("Profiling complete: {} tables", len(profiles))
     return profiles
-
-Table
-{
-    "schema_name": vid
-    "table_name": table 1,
-    "row_count": 10
-    "column_name": [
-        {
-            "col_name": col1
-        }
-    ]
-    
-    
-}
