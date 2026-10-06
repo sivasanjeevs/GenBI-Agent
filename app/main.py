@@ -283,7 +283,6 @@ def eval_results() -> dict[str, Any]:
     latest = json.loads(files[0].read_text())
     return latest
 
-
 # ─── Entry Point ──────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
