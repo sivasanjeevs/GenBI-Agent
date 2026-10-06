@@ -17,6 +17,7 @@ Unlike traditional Text-to-SQL tools that rely on manually hardcoded definitions
 * **📊 Context-Aware Answering**: Understands relative dates (e.g., "last month") and dynamically resolves them to deterministic values before planning queries.
 * **⚡ Highly Optimized LLM Usage**: Employs aggressive disk caching and parallel execution to minimize token usage and API latency.
 * **🧪 Integrated Eval Harness**: Includes a fully automated benchmarking suite to test against ground-truth questions and evaluate the consistency, speed, and accuracy of the semantic layer.
+* **💬 Interactive UI**: Includes a modern, React-based web interface for seamless multi-turn conversations and rich chart visualisations.
 
 ---
 
@@ -92,6 +93,14 @@ Rosetta provides a robust FastAPI backend. Start the server using `uvicorn`:
 python -m uvicorn app.main:app --reload
 ```
 
+### Starting the UI
+Rosetta also provides a React-based interactive web interface. To run it:
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
 ### Step 1: Train the Agent (Build Semantic Layer)
 Before asking questions, point the agent at the database so it can learn the data relationships:
 ```bash
@@ -124,8 +133,9 @@ curl -X POST http://localhost:8000/eval/run
 | `GET` | `/semantic-layer` | View the generated semantic layer definition. |
 | `POST` | `/semantic-layer/override` | Apply manual, auditable corrections to semantics. |
 | `POST` | `/ask` | Submit a natural language question. |
-| `GET` | `/ask/{id}/history` | Fetch context for conversational follow-ups. |
+| `GET` | `/ask/{conversation_id}/history` | Fetch context for conversational follow-ups. |
 | `POST` | `/eval/run` | Execute the evaluation harness. |
+| `GET` | `/eval/results` | Fetch the latest evaluation harness results. |
 | `GET` | `/health` | Check API health status. |
 
 ---
@@ -136,8 +146,8 @@ curl -X POST http://localhost:8000/eval/run
 - [x] **Checkpoint 2: Find the Right Data** (LLM query planning & generation)
 - [x] **Checkpoint 3: Answer with Evidence** (SQL tracing & data explanation)
 - [x] **Checkpoint 4: Prove It Works** (Automated eval harness)
-- [ ] **Checkpoint 5 (Bonus): Clarify & Converse** (Multi-turn conversations)
-- [ ] **Checkpoint 6 (Bonus): Visualise the Answer** (Chart generation)
+- [x] **Checkpoint 5 (Bonus): Clarify & Converse** (Multi-turn conversations)
+- [x] **Checkpoint 6 (Bonus): Visualise the Answer** (Chart generation)
 
 ---
 *Built with ❤️ for the DataGenie Engineering Hackathon 2026.*
